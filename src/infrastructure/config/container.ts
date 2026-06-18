@@ -17,11 +17,13 @@ import { InMemoryEventBus } from '../../adapters/events/InMemoryEventBus';
 import { StandardScoringStrategy } from '../../domain/services/StandardScoringStrategy';
 import type { TapResult } from '../../domain/entities/GameStatus';
 import type { PlayerProgress } from '../../domain/entities/PlayerProgress';
+import { AudioObserver } from '../../adapters/observers/AudioObserver';
 import { BUNDLED_LEVELS } from '../data/bundledLevels';
 import { SystemClock } from '../observability/SystemClock';
 import { ConsoleLogger } from '../observability/ConsoleLogger';
 import { ConsoleMetricsRecorder } from '../observability/ConsoleMetricsRecorder';
 import { AsyncStorageKeyValue } from '../storage/AsyncStorageKeyValue';
+import { AudioManager } from '../audio/AudioManager';
 
 /** Everything the UI needs, behind the {@link UseCase} abstraction. */
 export interface AppContainer {
@@ -48,6 +50,10 @@ export function createContainer(): AppContainer {
   const levels = new BundledLevelRepository(BUNDLED_LEVELS);
   const progress = new LocalProgressRepository(new AsyncStorageKeyValue());
   const scoring = new StandardScoringStrategy();
+
+  // Audio reacts to game events through the bus (Observer), gated by the
+  // AudioManager singleton's mute flag.
+  eventBus.subscribe(new AudioObserver(AudioManager.getInstance()));
 
   const withAspects = <I, O>(useCase: UseCase<I, O>, name: string): UseCase<I, O> =>
     new ExceptionHandlingUseCaseDecorator(

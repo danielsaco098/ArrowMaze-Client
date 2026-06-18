@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
+import { useTranslation } from '../i18n/I18nContext';
 import { useGame } from '../hooks/useGame';
 import { BoardView } from '../components/BoardView';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -12,6 +13,7 @@ const LAST_LEVEL_ID = 15;
 
 export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element {
   const { navigate } = useNavigation();
+  const { t } = useTranslation();
   const { status, lives, moves, outcome, board, level, onTapCell, retry } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
@@ -19,13 +21,13 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.level}>{level ? level.name : 'Loading…'}</Text>
+        <Text style={styles.level}>{level ? level.name : t('common.loading')}</Text>
         <View style={styles.stats}>
           <Text testID="lives" style={styles.lives}>
             {hearts}
           </Text>
           <Text testID="moves" style={styles.moves}>
-            Moves: {moves}
+            {t('game.moves', { count: moves })}
           </Text>
         </View>
       </View>
@@ -34,23 +36,23 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
         {board ? (
           <BoardView board={board} onTapCell={onTapCell} />
         ) : (
-          <Text style={styles.loading}>Loading…</Text>
+          <Text style={styles.loading}>{t('common.loading')}</Text>
         )}
       </View>
 
       {status === GameStatus.Victory && (
-        <Overlay testID="victory-overlay" title="You escaped!" tone={theme.colors.success}>
-          <Text style={styles.score}>Score: {outcome.score ?? 0}</Text>
-          {outcome.isNewBest && <Text style={styles.newBest}>New best!</Text>}
+        <Overlay testID="victory-overlay" title={t('game.victoryTitle')} tone={theme.colors.success}>
+          <Text style={styles.score}>{t('game.score', { score: outcome.score ?? 0 })}</Text>
+          {outcome.isNewBest && <Text style={styles.newBest}>{t('game.newBest')}</Text>}
           {levelId < LAST_LEVEL_ID && (
             <PrimaryButton
               testID="next-button"
-              label="Next level"
+              label={t('game.next')}
               onPress={() => navigate({ name: 'game', levelId: levelId + 1 })}
             />
           )}
           <PrimaryButton
-            label="Level select"
+            label={t('common.levelSelect')}
             variant="ghost"
             onPress={() => navigate({ name: 'levelSelect' })}
           />
@@ -58,10 +60,10 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
       )}
 
       {status === GameStatus.Defeat && (
-        <Overlay testID="defeat-overlay" title="Out of lives" tone={theme.colors.danger}>
-          <PrimaryButton testID="retry-button" label="Retry" onPress={retry} />
+        <Overlay testID="defeat-overlay" title={t('game.defeatTitle')} tone={theme.colors.danger}>
+          <PrimaryButton testID="retry-button" label={t('game.retry')} onPress={retry} />
           <PrimaryButton
-            label="Level select"
+            label={t('common.levelSelect')}
             variant="ghost"
             onPress={() => navigate({ name: 'levelSelect' })}
           />
