@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useContainer } from '../AppContainerContext';
+import { useTranslation } from '../i18n/I18nContext';
 import { PlayerProgress } from '../../../domain/entities/PlayerProgress';
 import type { Difficulty } from '../../../domain/entities/Level';
 import { theme, difficultyColor } from '../theme';
@@ -15,6 +16,7 @@ interface LevelItem {
 export function LevelSelectScreen(): React.JSX.Element {
   const { navigate, goHome } = useNavigation();
   const container = useContainer();
+  const { t } = useTranslation();
   const [levels, setLevels] = useState<LevelItem[]>([]);
   const [progress, setProgress] = useState<PlayerProgress>(PlayerProgress.empty());
 
@@ -38,9 +40,9 @@ export function LevelSelectScreen(): React.JSX.Element {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" onPress={goHome} testID="back-button">
-          <Text style={styles.back}>‹ Back</Text>
+          <Text style={styles.back}>{t('common.back')}</Text>
         </Pressable>
-        <Text style={styles.title}>Select a level</Text>
+        <Text style={styles.title}>{t('levelSelect.title')}</Text>
         <View style={styles.spacer} />
       </View>
 
@@ -62,7 +64,7 @@ export function LevelSelectScreen(): React.JSX.Element {
               ]}
             >
               <Text style={styles.tileNumber}>{unlocked ? level.id : '🔒'}</Text>
-              <Text style={styles.tileDifficulty}>{level.difficulty}</Text>
+              <Text style={styles.tileDifficulty}>{t(`difficulty.${level.difficulty}`)}</Text>
               {best !== undefined && <Text style={styles.tileScore}>★ {best}</Text>}
             </Pressable>
           );
