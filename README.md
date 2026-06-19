@@ -6,7 +6,7 @@
 A casual grid-puzzle game clone built with **React Native + Expo (TypeScript)**, designed around
 **Clean Architecture**, **SOLID**, **GoF design patterns**, and **aspect-oriented cross-cutting concerns**.
 
-[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](../../actions)
+[![CI](https://github.com/danielsaco098/ArrowMaze-Client/actions/workflows/ci.yml/badge.svg)](https://github.com/danielsaco098/ArrowMaze-Client/actions/workflows/ci.yml)
 [![Unit Tests](https://img.shields.io/badge/tests-unit%20%7C%20widget-success?logo=jest)](#-running-tests)
 [![Expo](https://img.shields.io/badge/Expo-SDK_52+-000020?logo=expo&logoColor=white)](https://expo.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
