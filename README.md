@@ -8,7 +8,7 @@ A casual grid-puzzle game clone built with **React Native + Expo (TypeScript)**,
 
 [![CI](https://github.com/danielsaco098/ArrowMaze-Client/actions/workflows/ci.yml/badge.svg)](https://github.com/danielsaco098/ArrowMaze-Client/actions/workflows/ci.yml)
 [![Unit Tests](https://img.shields.io/badge/tests-unit%20%7C%20widget-success?logo=jest)](#-running-tests)
-[![Expo](https://img.shields.io/badge/Expo-SDK_52+-000020?logo=expo&logoColor=white)](https://expo.dev)
+[![Expo](https://img.shields.io/badge/Expo-SDK_56-000020?logo=expo&logoColor=white)](https://expo.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
@@ -26,12 +26,11 @@ sliding off the board** in the direction it points:
 - If the path is **blocked by another arrow cell**, the move fails and the player **loses one life**.
 - The player starts with **3 lives**. Clear every arrow to **win**; run out of lives to **lose**.
 
-Boards also contain **walls** and **empty cells**, and advanced levels add **collectibles** and a
-**time limit**. Score is computed from **moves used** and **time elapsed**.
+Boards also contain **walls**, **empty cells** and **exit cells**, with 15 hand-authored levels of
+increasing difficulty. Score is computed from **moves used** and **time elapsed**.
 
-> **Tech stack:** React Native + Expo · TypeScript (strict) · Jest + React Native Testing Library ·
-> i18next (ES/EN) · expo-av (audio) · AsyncStorage (local persistence) · REST sync with the
-> [ArrowMaze backend](../ArrowMaze-Backend).
+> **Tech stack:** React Native + Expo (SDK 56) · TypeScript (strict) · Jest + React Native Testing Library ·
+> in-app i18n (ES/EN) · pluggable audio engine with mute · AsyncStorage (local persistence).
 
 ---
 
@@ -59,91 +58,92 @@ outer layers know about inner layers, never the reverse. Frameworks, the databas
 
 | Layer | Folder | Responsibility | Key components |
 | --- | --- | --- | --- |
-| **1 — Domain (Entities)** | `src/domain` | Pure business rules, zero external imports. Fully unit-testable in isolation. | `Board`, `Cell`, `ArrowCell`, `WallCell`, `EmptyCell`, `ExitCell`, `Level`, `GameSession` (aggregate root), VOs `Position`/`Direction`/`Score`/`Lives`, services `PathTraversalService`/`ScoringService`, events `PlayerMoved`/`LevelCompleted`/`GameOver` |
-| **2 — Application (Use Cases)** | `src/application` | Orchestrates the domain; depends only on **ports**, never concretions. | `TapCellUseCase`, `LoadLevelUseCase`, `TickUseCase`, `SaveProgressUseCase`; ports `ILevelRepository`, `IProgressRepository`, `IEventPublisher`, `ICellFactory`, `ILevelBuilder`, `IObserver` |
-| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | Presenters/ViewModels, repository implementations (`Bundled`/`Rest`/`Local`), `JsonCellFactory`, `JsonLevelBuilder`, mappers (DTO ⇄ domain), `InMemoryEventBus`, AOP decorators |
-| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens/widgets), AsyncStorage/SQLite, `HttpClient`, `expo-av` audio, i18next, **Composition Root** (DI wiring) |
+| **1 — Domain (Entities)** | `src/domain` | Pure business rules, zero external imports. Fully unit-testable in isolation. | `Board`, `Cell`, `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`, `Level`, `GameSession` (aggregate root), `PlayerProgress`; VOs `Position`/`Direction`/`Score`/`Lives`; services `PathTraversalService`, `StandardScoringStrategy`; events `PlayerMoved`/`LevelCompleted`/`GameOver` |
+| **2 — Application (Use Cases)** | `src/application` | Orchestrates the domain; depends only on **ports**, never concretions. | Use cases `TapCellUseCase`, `LoadLevelUseCase`, `RecordLevelResultUseCase`, `GetProgressUseCase`; AOP decorators; ports `ILevelRepository`, `IProgressRepository`, `IEventPublisher`, `ICellFactory`, `ILevelBuilder`, `IObserver`, `IKeyValueStorage`, `ILogger`, `IClock`, `IMetricsRecorder`, `IAudioService` |
+| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `ProgressMapper`, `InMemoryEventBus`, `AudioObserver` |
+| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), `AsyncStorageKeyValue`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
 
 The full **class diagram** (with patterns and layer colors) lives in
 [`docs/diagrams/class-diagram.png`](./docs/diagrams/class-diagram.png).
 
-### Planned source layout
+### Source layout
 
 ```
 src/
 ├── domain/            # Layer 1 — pure TypeScript, no outward imports
-│   ├── entities/
-│   ├── value-objects/
-│   ├── services/
-│   └── events/
-├── application/       # Layer 2 — use cases + ports + AOP decorators
+│   ├── entities/      # Board, Cell + subtypes, GameSession, Level, PlayerProgress
+│   ├── value-objects/ # Position, Direction, Score, Lives
+│   ├── services/      # PathTraversalService, scoring strategy
+│   └── events/        # PlayerMoved, LevelCompleted, GameOver
+├── application/       # Layer 2 — use cases, ports and AOP decorators
 │   ├── use-cases/
 │   ├── ports/
-│   └── decorators/
-├── adapters/          # Layer 3 — presenters, repositories, factories, mappers
-│   ├── presenters/
+│   └── decorators/    # Logging / Metrics / ExceptionHandling
+├── adapters/          # Layer 3 — repositories, factory, builder, mappers, events
 │   ├── repositories/
 │   ├── factories/
 │   ├── builders/
 │   ├── mappers/
-│   └── events/
-└── infrastructure/    # Layer 4 — RN UI, storage, http, audio, i18n, DI
-    ├── ui/
-    ├── storage/
-    ├── http/
-    ├── audio/
-    ├── i18n/
-    └── config/        # Composition Root
+│   ├── events/
+│   └── observers/     # AudioObserver
+└── infrastructure/    # Layer 4 — frameworks & drivers
+    ├── ui/            # screens, components, hooks, navigation, i18n
+    ├── storage/       # AsyncStorageKeyValue
+    ├── audio/         # AudioManager (singleton) + engine
+    ├── observability/ # SystemClock, ConsoleLogger, ConsoleMetricsRecorder
+    ├── data/          # bundled levels
+    └── config/        # Composition Root (container.ts)
 ```
 
 ---
 
 ## 🧩 Design Patterns (GoF)
 
-Patterns are distributed across the three GoF categories. _Code links are finalized as the
-implementation lands._
+Eight GoF patterns are implemented across the three categories. Each row links to the code.
 
 | Category | Pattern | Where / Why | Code |
 | --- | --- | --- | --- |
-| Creational | **Factory Method** | `JsonCellFactory` builds `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell` from level data without the client knowing concrete classes. | `src/adapters/factories/JsonCellFactory.ts` |
-| Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a JSON config (board, rules, optional elements). | `src/adapters/builders/JsonLevelBuilder.ts` |
-| Creational | **Singleton** | `AudioManager`, `LevelConfigManager`, `SessionManager` — single instance per run. | `src/infrastructure/audio/AudioManager.ts` |
-| Structural | **Composite** | `Board` treats groups of cells and individual `Cell`s uniformly. | `src/domain/entities/Board.ts` |
-| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` wrap use cases (see [AOP](#-aspect-oriented-programming-aop)). | `src/application/decorators/` |
-| Structural | **Adapter** | Repository implementations wrap AsyncStorage / the HTTP client behind domain ports. | `src/adapters/repositories/` |
-| Structural | **Facade** | `GameServiceFacade` exposes a simple API over audio + persistence + network. | `src/infrastructure/config/GameServiceFacade.ts` |
-| Behavioral | **Strategy** | Interchangeable level-loading (`BundledLevelStrategy` / `RestLevelStrategy`) and scoring strategies. | `src/adapters/repositories/` |
-| Behavioral | **Observer** | `InMemoryEventBus` notifies UI / scoring / audio on `PlayerMoved`, `LevelCompleted`, `GameOver`. | `src/adapters/events/InMemoryEventBus.ts` |
-| Behavioral | **Command** | Each player tap is a `Command` enabling action history / undo. | `src/application/use-cases/commands/` |
-| Behavioral | **State** | Game lifecycle: `MenuState`, `PlayingState`, `PausedState`, `GameOverState`, `VictoryState`. | `src/domain/entities/states/` |
-| Behavioral | **Template Method** | `BaseLevel` defines the level flow (init → run → evaluate); subclasses fill specific steps. | `src/domain/entities/BaseLevel.ts` |
-
-> ✅ Rubric needs **4+ patterns across the three categories** — this plan covers all three comfortably.
+| Creational | **Factory Method** | `JsonCellFactory` decides which concrete `Cell` (`ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`) to build from level data, so callers never instantiate concrete cells. | [JsonCellFactory.ts](./src/adapters/factories/JsonCellFactory.ts) |
+| Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a `LevelData` definition (empty grid → place cells → board → metadata). | [JsonLevelBuilder.ts](./src/adapters/builders/JsonLevelBuilder.ts) |
+| Creational | **Singleton** | `AudioManager` exposes a single shared instance (`getInstance`) that owns the global mute flag and audio engine. | [AudioManager.ts](./src/infrastructure/audio/AudioManager.ts) |
+| Structural | **Composite** | `Board` holds the grid and treats every `Cell` subtype uniformly through the `Cell` base (e.g. `isPassable`). | [Board.ts](./src/domain/entities/Board.ts) |
+| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
+| Structural | **Adapter** | `LocalProgressRepository` adapts the `IKeyValueStorage` port to the `IProgressRepository` port; `AsyncStorageKeyValue` adapts React Native's AsyncStorage to `IKeyValueStorage`. | [LocalProgressRepository.ts](./src/adapters/repositories/LocalProgressRepository.ts) · [AsyncStorageKeyValue.ts](./src/infrastructure/storage/AsyncStorageKeyValue.ts) |
+| Behavioral | **Strategy** | `IScoringStrategy` / `StandardScoringStrategy` make the scoring algorithm interchangeable; `BundledLevelRepository` is a swappable `ILevelRepository` strategy. | [StandardScoringStrategy.ts](./src/domain/services/StandardScoringStrategy.ts) |
+| Behavioral | **Observer** | `InMemoryEventBus` (subject) notifies subscribers; `AudioObserver` reacts to `PlayerMoved`/`LevelCompleted`/`GameOver`. | [InMemoryEventBus.ts](./src/adapters/events/InMemoryEventBus.ts) · [AudioObserver.ts](./src/adapters/observers/AudioObserver.ts) |
 
 ---
 
 ## 🔠 SOLID Principles
 
-Each principle is applied and traceable to concrete code. _Paths point to the planned implementation._
+Each principle is applied and traceable to concrete code.
 
-- **S — Single Responsibility.** Movement (`TapCellUseCase`), rendering (RN presenters/`GameViewModel`),
-  and persistence (`LocalProgressRepository`) are separate classes, each with one reason to change.
-- **O — Open/Closed.** New cell types extend the `Cell`/`ICell` abstraction; adding a cell never edits
-  existing cells or the factory contract.
-- **L — Liskov Substitution.** `ArrowCell`, `WallCell`, `EmptyCell`, `ExitCell` are interchangeable
-  anywhere an `ICell` is expected; `PathTraversalService` treats them polymorphically.
-- **I — Interface Segregation.** Behaviors are split into small ports (`IRenderable`, `IInteractable`,
-  `ICollidable`) instead of one fat interface, so classes depend only on what they use.
-- **D — Dependency Inversion.** Use cases depend on abstractions (`ILevelRepository`, `IEventPublisher`),
-  never on AsyncStorage or `fetch`; concretions are injected at the Composition Root.
+- **S — Single Responsibility.** Tap orchestration ([`TapCellUseCase`](./src/application/use-cases/TapCellUseCase.ts)),
+  the slide-out/lose-a-life rule ([`GameSession`](./src/domain/entities/GameSession.ts)) and persistence
+  ([`LocalProgressRepository`](./src/adapters/repositories/LocalProgressRepository.ts)) are separate classes,
+  each with one reason to change.
+- **O — Open/Closed.** New cell types extend the [`Cell`](./src/domain/entities/Cell.ts) base and add one
+  `case` in [`JsonCellFactory`](./src/adapters/factories/JsonCellFactory.ts); existing cells and callers stay
+  untouched. Likewise a new scoring algorithm just implements `IScoringStrategy`.
+- **L — Liskov Substitution.** `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell` are interchangeable wherever a
+  [`Cell`](./src/domain/entities/Cell.ts) is expected; [`PathTraversalService`](./src/domain/services/PathTraversalService.ts)
+  relies only on the polymorphic `isPassable()`.
+- **I — Interface Segregation.** Concerns are split into narrow, single-method ports
+  ([`IClock`](./src/application/ports/IClock.ts), [`ILogger`](./src/application/ports/ILogger.ts),
+  [`IMetricsRecorder`](./src/application/ports/IMetricsRecorder.ts), [`IKeyValueStorage`](./src/application/ports/IKeyValueStorage.ts))
+  instead of one fat interface, so each class depends only on what it uses.
+- **D — Dependency Inversion.** Use cases depend on abstractions
+  ([`ILevelRepository`](./src/application/ports/ILevelRepository.ts), `IEventPublisher`, `IScoringStrategy`),
+  never on AsyncStorage or concrete engines; implementations are injected at the
+  [Composition Root](./src/infrastructure/config/container.ts).
 
 ---
 
 ## 🪡 Aspect-Oriented Programming (AOP)
 
 Cross-cutting concerns are kept out of the domain/use-case code **without an AOP library**, using the
-**Decorator pattern over a shared `UseCase<I, O>` port** (a SOLID-based strategy). Each use case is
-wrapped at the Composition Root:
+**Decorator pattern over a shared [`UseCase<I, O>`](./src/application/ports/UseCase.ts) port** (a SOLID-based
+strategy). Each use case is wrapped at the [Composition Root](./src/infrastructure/config/container.ts):
 
 ```
 TapCellUseCase
@@ -155,7 +155,9 @@ TapCellUseCase
 Because every use case implements the same `execute(input): Promise<output>` contract, decorators
 compose transparently and the business code never references a logger, profiler, or error handler.
 
-**Implemented aspects:** Logging & tracing · Performance metrics · Centralized exception handling.
+**Implemented aspects:** [Logging & tracing](./src/application/decorators/LoggingUseCaseDecorator.ts) ·
+[Performance metrics](./src/application/decorators/MetricsUseCaseDecorator.ts) ·
+[Centralized exception handling](./src/application/decorators/ExceptionHandlingUseCaseDecorator.ts) (retry + fallback).
 
 ---
 
@@ -196,16 +198,19 @@ npx eas build -p android --profile preview
 ## 🧪 Running Tests
 
 ```bash
-npm test               # all unit + widget tests (Jest)
-npm run test:watch     # watch mode
+npm test               # all unit + widget tests (Jest, two projects)
 npm run test:coverage  # coverage report
+npm run typecheck      # tsc --noEmit
 ```
 
+- Jest runs **two projects**: `logic` (ts-jest, Node) for the framework-free domain/application layers,
+  and `ui` (jest-expo) for React Native widget tests.
 - **Unit tests** cover every entity, use case, and service in isolation, following **AAA**
   (Arrange–Act–Assert) and the naming convention
-  `should_<expected>_when_<condition>` (e.g. `should_return_victory_state_when_board_is_cleared`).
-- **Widget tests** verify screen rendering and navigation (home → level → victory/defeat).
-- Tests run automatically on every Pull Request via **GitHub Actions** (`.github/workflows/ci.yml`).
+  `should_<expected>_when_<condition>` (e.g. `should_return_victory_state_when_the_board_is_cleared`).
+  A solver test even proves all 15 bundled levels are solvable.
+- **Widget tests** verify component rendering, board interaction and navigation.
+- Tests run automatically on every push and Pull Request via **GitHub Actions** (`.github/workflows/ci.yml`).
 
 ---
 
