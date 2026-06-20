@@ -24,6 +24,14 @@ import { ConsoleLogger } from '../observability/ConsoleLogger';
 import { ConsoleMetricsRecorder } from '../observability/ConsoleMetricsRecorder';
 import { AsyncStorageKeyValue } from '../storage/AsyncStorageKeyValue';
 import { AudioManager } from '../audio/AudioManager';
+import type { IAuthApi } from '../../application/ports/IAuthApi';
+import type { ILeaderboardApi } from '../../application/ports/ILeaderboardApi';
+import type { IProgressApi } from '../../application/ports/IProgressApi';
+import { FetchHttpClient } from '../http/FetchHttpClient';
+import { RestAuthApi } from '../../adapters/api/RestAuthApi';
+import { RestLeaderboardApi } from '../../adapters/api/RestLeaderboardApi';
+import { RestProgressApi } from '../../adapters/api/RestProgressApi';
+import { apiConfig } from './apiConfig';
 
 /** Everything the UI needs, behind the {@link UseCase} abstraction. */
 export interface AppContainer {
@@ -33,6 +41,10 @@ export interface AppContainer {
   readonly tapCell: UseCase<TapCellInput, TapResult>;
   readonly recordResult: UseCase<RecordLevelResultInput, RecordLevelResultOutput>;
   readonly getProgress: UseCase<void, PlayerProgress>;
+  /** Backend API clients (online features: auth, leaderboard, progress sync). */
+  readonly authApi: IAuthApi;
+  readonly leaderboardApi: ILeaderboardApi;
+  readonly progressApi: IProgressApi;
 }
 
 /**
@@ -47,9 +59,14 @@ export function createContainer(): AppContainer {
   const metrics = new ConsoleMetricsRecorder();
 
   const eventBus = new InMemoryEventBus();
+  // Levels play offline from the bundled set by default; swap in
+  // `new RestLevelRepository(http)` to load them from the backend instead.
   const levels = new BundledLevelRepository(BUNDLED_LEVELS);
   const progress = new LocalProgressRepository(new AsyncStorageKeyValue());
   const scoring = new StandardScoringStrategy();
+
+  // Backend HTTP clients (online features).
+  const http = new FetchHttpClient(apiConfig.baseUrl);
 
   // Audio reacts to game events through the bus (Observer), gated by the
   // AudioManager singleton's mute flag.
@@ -73,5 +90,8 @@ export function createContainer(): AppContainer {
     tapCell: withAspects(new TapCellUseCase(eventBus), 'TapCell'),
     recordResult: withAspects(new RecordLevelResultUseCase(scoring, progress), 'RecordLevelResult'),
     getProgress: withAspects(new GetProgressUseCase(progress), 'GetProgress'),
+    authApi: new RestAuthApi(http),
+    leaderboardApi: new RestLeaderboardApi(http),
+    progressApi: new RestProgressApi(http),
   };
 }
