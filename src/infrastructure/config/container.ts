@@ -31,6 +31,7 @@ import { FetchHttpClient } from '../http/FetchHttpClient';
 import { RestAuthApi } from '../../adapters/api/RestAuthApi';
 import { RestLeaderboardApi } from '../../adapters/api/RestLeaderboardApi';
 import { RestProgressApi } from '../../adapters/api/RestProgressApi';
+import { SessionStore } from '../../adapters/session/SessionStore';
 import { apiConfig } from './apiConfig';
 
 /** Everything the UI needs, behind the {@link UseCase} abstraction. */
@@ -45,6 +46,8 @@ export interface AppContainer {
   readonly authApi: IAuthApi;
   readonly leaderboardApi: ILeaderboardApi;
   readonly progressApi: IProgressApi;
+  /** Persisted authentication session (token + user). */
+  readonly session: SessionStore;
 }
 
 /**
@@ -62,7 +65,8 @@ export function createContainer(): AppContainer {
   // Levels play offline from the bundled set by default; swap in
   // `new RestLevelRepository(http)` to load them from the backend instead.
   const levels = new BundledLevelRepository(BUNDLED_LEVELS);
-  const progress = new LocalProgressRepository(new AsyncStorageKeyValue());
+  const storage = new AsyncStorageKeyValue();
+  const progress = new LocalProgressRepository(storage);
   const scoring = new StandardScoringStrategy();
 
   // Backend HTTP clients (online features).
@@ -93,5 +97,6 @@ export function createContainer(): AppContainer {
     authApi: new RestAuthApi(http),
     leaderboardApi: new RestLeaderboardApi(http),
     progressApi: new RestProgressApi(http),
+    session: new SessionStore(storage),
   };
 }
