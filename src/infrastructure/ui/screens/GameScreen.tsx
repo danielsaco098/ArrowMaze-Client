@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useTranslation } from '../i18n/I18nContext';
+import { useContainer } from '../AppContainerContext';
+import { useSession } from '../session/SessionContext';
 import { useGame } from '../hooks/useGame';
 import { BoardView } from '../components/BoardView';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -14,9 +16,21 @@ const LAST_LEVEL_ID = 15;
 export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element {
   const { navigate } = useNavigation();
   const { t } = useTranslation();
+  const container = useContainer();
+  const { token } = useSession();
   const { status, lives, moves, outcome, board, level, onTapCell, retry } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
+
+  // On victory, if the player is signed in, push the score to the backend so it
+  // appears on the global leaderboard. Best-effort: a server-offline error is
+  // swallowed and never blocks play.
+  const score = outcome.score;
+  useEffect(() => {
+    if (status === GameStatus.Victory && score !== undefined && token) {
+      void container.progressApi.sync(token, [{ levelId, score }]).catch(() => undefined);
+    }
+  }, [status, score, token, levelId, container]);
 
   return (
     <View style={styles.container}>
@@ -51,6 +65,12 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
               onPress={() => navigate({ name: 'game', levelId: levelId + 1 })}
             />
           )}
+          <PrimaryButton
+            testID="leaderboard-button"
+            label={t('leaderboard.open')}
+            variant="ghost"
+            onPress={() => navigate({ name: 'leaderboard', levelId })}
+          />
           <PrimaryButton
             label={t('common.levelSelect')}
             variant="ghost"
