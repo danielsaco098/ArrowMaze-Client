@@ -22,6 +22,21 @@ const en = {
   'settings.languageShort': 'EN',
   'settings.soundOn': '🔊 Sound',
   'settings.soundOff': '🔇 Muted',
+  'login.signIn': 'Sign in',
+  'login.title': 'Sign in / Register',
+  'login.username': 'Username',
+  'login.password': 'Password',
+  'login.loginBtn': 'Sign in',
+  'login.registerBtn': 'Create account',
+  'login.signOut': 'Sign out',
+  'login.signedInAs': 'Signed in as {username}',
+  'login.errorInvalid': 'Invalid username or password.',
+  'login.errorTaken': 'That username is already taken.',
+  'login.errorNetwork': 'Could not reach the server. Is the backend running?',
+  'leaderboard.open': '🏆 Leaderboard',
+  'leaderboard.title': 'Leaderboard — Level {level}',
+  'leaderboard.empty': 'No scores yet. Be the first!',
+  'leaderboard.error': 'Could not load the leaderboard (server offline?).',
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -47,6 +62,21 @@ const es: Record<TranslationKey, string> = {
   'settings.languageShort': 'ES',
   'settings.soundOn': '🔊 Sonido',
   'settings.soundOff': '🔇 Silencio',
+  'login.signIn': 'Entrar',
+  'login.title': 'Entrar / Registrarse',
+  'login.username': 'Usuario',
+  'login.password': 'Contraseña',
+  'login.loginBtn': 'Entrar',
+  'login.registerBtn': 'Crear cuenta',
+  'login.signOut': 'Cerrar sesión',
+  'login.signedInAs': 'Conectado como {username}',
+  'login.errorInvalid': 'Usuario o contraseña incorrectos.',
+  'login.errorTaken': 'Ese usuario ya está en uso.',
+  'login.errorNetwork': 'No se pudo conectar con el servidor. ¿Está corriendo el backend?',
+  'leaderboard.open': '🏆 Clasificación',
+  'leaderboard.title': 'Clasificación — Nivel {level}',
+  'leaderboard.empty': 'Aún no hay puntajes. ¡Sé el primero!',
+  'leaderboard.error': 'No se pudo cargar la clasificación (¿servidor apagado?).',
 };
 
 export const TRANSLATIONS: Record<Language, Record<TranslationKey, string>> = { en, es };
