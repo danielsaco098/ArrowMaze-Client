@@ -30,6 +30,7 @@ module.exports = {
       displayName: 'ui',
       preset: 'jest-expo',
       testMatch: ['<rootDir>/src/**/*.test.tsx'],
+      setupFiles: ['<rootDir>/jest.setup.ui.js'],
       clearMocks: true,
     },
   ],

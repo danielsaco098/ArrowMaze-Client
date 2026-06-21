@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { useSound } from '../hooks/useSound';
+import { useSession } from '../session/SessionContext';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../theme';
 
@@ -10,10 +11,21 @@ export function HomeScreen(): React.JSX.Element {
   const { navigate } = useNavigation();
   const { t, language, toggleLanguage } = useTranslation();
   const { muted, toggleMuted } = useSound();
+  const { isAuthenticated, user } = useSession();
 
   return (
     <View style={styles.container}>
       <View style={styles.settingsRow}>
+        <Pressable
+          accessibilityRole="button"
+          testID="account-chip"
+          onPress={() => navigate({ name: 'login' })}
+          style={styles.chip}
+        >
+          <Text style={styles.chipText}>
+            {isAuthenticated ? `👤 ${user?.username ?? ''}` : t('login.signIn')}
+          </Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           testID="sound-toggle"

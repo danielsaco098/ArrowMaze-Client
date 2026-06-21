@@ -4,7 +4,9 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 export type Route =
   | { readonly name: 'home' }
   | { readonly name: 'levelSelect' }
-  | { readonly name: 'game'; readonly levelId: number };
+  | { readonly name: 'game'; readonly levelId: number }
+  | { readonly name: 'login' }
+  | { readonly name: 'leaderboard'; readonly levelId: number };
 
 interface NavigationApi {
   readonly route: Route;
