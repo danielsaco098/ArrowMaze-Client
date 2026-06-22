@@ -1,4 +1,5 @@
 import { Cell } from './Cell';
+import { ArrowCell } from './ArrowCell';
 import { EmptyCell } from './EmptyCell';
 import { Position } from '../value-objects/Position';
 import {
@@ -6,6 +7,7 @@ import {
   MisplacedCellError,
   NonRectangularBoardError,
   OutOfBoundsError,
+  UnknownArrowError,
 } from '../errors';
 
 /**
@@ -77,8 +79,47 @@ export class Board {
     return this.grid.flat();
   }
 
+  /** The cells that make up a given arrow (one or more, contiguous). */
+  private arrowCellsOf(arrowId: number): ArrowCell[] {
+    return this.cells().filter(
+      (cell): cell is ArrowCell => cell instanceof ArrowCell && cell.arrowId === arrowId,
+    );
+  }
+
+  /** The distinct arrow ids currently on the board. */
+  arrowIds(): number[] {
+    const ids = new Set<number>();
+    for (const cell of this.cells()) {
+      if (cell instanceof ArrowCell) {
+        ids.add(cell.arrowId);
+      }
+    }
+    return [...ids];
+  }
+
+  /** The leading cell of an arrow (the one furthest along its pointing direction). */
+  headOfArrow(arrowId: number): Position {
+    const cells = this.arrowCellsOf(arrowId);
+    if (cells.length === 0) {
+      throw new UnknownArrowError(arrowId);
+    }
+    const direction = cells[0].direction;
+    const projection = (p: Position): number => p.row * direction.rowDelta + p.col * direction.colDelta;
+    return cells.reduce((best, cell) =>
+      projection(cell.position) > projection(best.position) ? cell : best,
+    ).position;
+  }
+
+  /** Removes an entire arrow (all its cells become empty) when it escapes. */
+  clearArrow(arrowId: number): void {
+    for (const cell of this.arrowCellsOf(arrowId)) {
+      this.clearCell(cell.position);
+    }
+  }
+
+  /** Number of arrows remaining (counts whole arrows, not individual cells). */
   arrowCount(): number {
-    return this.cells().filter((cell) => cell.isArrow()).length;
+    return this.arrowIds().length;
   }
 
   isCleared(): boolean {

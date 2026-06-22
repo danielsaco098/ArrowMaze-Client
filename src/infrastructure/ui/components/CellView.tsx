@@ -15,14 +15,13 @@ interface Props {
 /** Renders one board cell; only arrows are interactive. */
 export function CellView({ cell, size, onPress }: Props): React.JSX.Element {
   const isArrow = cell instanceof ArrowCell;
-  const backgroundColor =
-    cell.kind === 'ARROW'
-      ? theme.colors.arrow
-      : cell.kind === 'WALL'
-        ? theme.colors.wall
-        : cell.kind === 'EXIT'
-          ? theme.colors.exit
-          : theme.colors.surfaceAlt;
+  const backgroundColor = isArrow
+    ? (cell as ArrowCell).color
+    : cell.kind === 'WALL'
+      ? theme.colors.wall
+      : cell.kind === 'EXIT'
+        ? theme.colors.exit
+        : theme.colors.surfaceAlt;
 
   return (
     <Pressable

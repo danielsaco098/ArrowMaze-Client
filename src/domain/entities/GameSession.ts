@@ -1,4 +1,5 @@
 import { Board } from './Board';
+import { ArrowCell } from './ArrowCell';
 import { GameStatus, TapOutcome, TapResult } from './GameStatus';
 import { Lives } from '../value-objects/Lives';
 import { Position } from '../value-objects/Position';
@@ -62,9 +63,10 @@ export class GameSession {
 
     this.moveCount += 1;
 
+    const arrowId = (this.board.cellAt(position) as ArrowCell).arrowId;
     let outcome: TapOutcome;
     if (this.traversal.canEscape(this.board, position)) {
-      this.board.clearCell(position);
+      this.board.clearArrow(arrowId);
       outcome = TapOutcome.Escaped;
       if (this.board.isCleared()) {
         this.currentStatus = GameStatus.Victory;

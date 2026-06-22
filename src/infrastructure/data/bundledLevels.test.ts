@@ -1,6 +1,7 @@
 import { BUNDLED_LEVELS } from './bundledLevels';
 import { JsonLevelBuilder } from '../../adapters/builders/JsonLevelBuilder';
 import { Board } from '../../domain/entities/Board';
+import { ArrowCell } from '../../domain/entities/ArrowCell';
 import { PathTraversalService } from '../../domain/services/PathTraversalService';
 
 const builder = new JsonLevelBuilder();
@@ -17,8 +18,8 @@ function remainingAfterGreedySolve(board: Board): number {
   while (progressed && board.arrowCount() > 0) {
     progressed = false;
     for (const cell of board.cells()) {
-      if (cell.isArrow() && traversal.canEscape(board, cell.position)) {
-        board.clearCell(cell.position);
+      if (cell instanceof ArrowCell && traversal.canEscape(board, cell.position)) {
+        board.clearArrow(cell.arrowId);
         progressed = true;
         break;
       }
