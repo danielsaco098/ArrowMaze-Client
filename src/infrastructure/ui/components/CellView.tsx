@@ -9,11 +9,17 @@ import { theme } from '../theme';
 interface Props {
   cell: Cell;
   size: number;
+  /** True when this cell is the leading cell (head) of its arrow. */
+  isHead: boolean;
   onPress: (position: Position) => void;
 }
 
-/** Renders one board cell; only arrows are interactive. */
-export function CellView({ cell, size, onPress }: Props): React.JSX.Element {
+/**
+ * Renders one board cell; only arrows are interactive. A multi-cell arrow shows
+ * its arrowhead only on the head cell, while the body cells are a plain coloured
+ * block, so the whole arrow reads as a single coloured piece.
+ */
+export function CellView({ cell, size, isHead, onPress }: Props): React.JSX.Element {
   const isArrow = cell instanceof ArrowCell;
   const backgroundColor = isArrow
     ? (cell as ArrowCell).color
@@ -31,7 +37,7 @@ export function CellView({ cell, size, onPress }: Props): React.JSX.Element {
       onPress={() => onPress(cell.position)}
       style={[styles.cell, { width: size, height: size, backgroundColor }]}
     >
-      {isArrow ? (
+      {isArrow && isHead ? (
         <ArrowGlyph direction={(cell as ArrowCell).direction.name} />
       ) : (
         <View />

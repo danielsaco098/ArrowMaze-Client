@@ -21,6 +21,14 @@ export function BoardView({ board, onTapCell }: Props): React.JSX.Element {
     rows.push(cells.slice(r * board.cols, r * board.cols + board.cols));
   }
 
+  // Precompute the head cell of every arrow so each multi-cell arrow shows its
+  // arrowhead only once (at the head).
+  const headKeys = new Set<string>();
+  for (const arrowId of board.arrowIds()) {
+    const head = board.headOfArrow(arrowId);
+    headKeys.add(`${head.row},${head.col}`);
+  }
+
   return (
     <View testID="board" style={styles.board}>
       {rows.map((row, r) => (
@@ -30,6 +38,7 @@ export function BoardView({ board, onTapCell }: Props): React.JSX.Element {
               key={`${cell.position.row}-${cell.position.col}`}
               cell={cell}
               size={size}
+              isHead={headKeys.has(`${cell.position.row},${cell.position.col}`)}
               onPress={onTapCell}
             />
           ))}
