@@ -15,6 +15,27 @@ export class MalformedCellSpecError extends Error {
   }
 }
 
+/** Distinct colors cycled across arrows so each one is visually distinguishable. */
+const ARROW_PALETTE = [
+  '#6FE3C4',
+  '#FFD166',
+  '#FF6B6B',
+  '#4F7CFF',
+  '#C792EA',
+  '#F78C6B',
+  '#7FDBFF',
+  '#B9FBC0',
+];
+
+export function arrowColorFor(arrowId: number): string {
+  return ARROW_PALETTE[Math.abs(arrowId) % ARROW_PALETTE.length];
+}
+
+/** A unique negative id for an ungrouped (single-cell) arrow, derived from its position. */
+function deriveArrowId(position: Position): number {
+  return -(position.row * 10000 + position.col + 1);
+}
+
 /**
  * Factory Method implementation: decides which concrete `Cell` subclass to build
  * from a serialized {@link CellSpec}, so level-loading code never instantiates
@@ -28,7 +49,11 @@ export class JsonCellFactory implements ICellFactory {
         if (!spec.direction) {
           throw new MalformedCellSpecError('An arrow cell requires a "direction".');
         }
-        return new ArrowCell(position, Direction.fromName(spec.direction));
+        // Cells sharing an explicit arrowId form one multi-cell arrow; an
+        // ungrouped arrow gets a unique derived id (length-1).
+        const arrowId = spec.arrowId ?? deriveArrowId(position);
+        const color = spec.color ?? arrowColorFor(arrowId);
+        return new ArrowCell(position, Direction.fromName(spec.direction), arrowId, color);
       }
       case 'WALL':
         return new WallCell(position);

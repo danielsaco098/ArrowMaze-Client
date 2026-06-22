@@ -9,7 +9,7 @@ const at = new Position(0, 0);
 
 describe('Cell hierarchy', () => {
   it('should_block_traversal_when_cell_is_an_arrow_or_a_wall', () => {
-    expect(new ArrowCell(at, Direction.UP).isPassable()).toBe(false);
+    expect(new ArrowCell(at, Direction.UP, 1).isPassable()).toBe(false);
     expect(new WallCell(at).isPassable()).toBe(false);
   });
 
@@ -19,7 +19,7 @@ describe('Cell hierarchy', () => {
   });
 
   it('should_identify_only_arrow_cells_as_tappable', () => {
-    expect(new ArrowCell(at, Direction.UP).isArrow()).toBe(true);
+    expect(new ArrowCell(at, Direction.UP, 1).isArrow()).toBe(true);
     expect(new WallCell(at).isArrow()).toBe(false);
     expect(new EmptyCell(at).isArrow()).toBe(false);
     expect(new ExitCell(at).isArrow()).toBe(false);
@@ -27,7 +27,7 @@ describe('Cell hierarchy', () => {
 
   it('should_expose_its_kind_and_direction_when_cell_is_an_arrow', () => {
     // Arrange
-    const cell = new ArrowCell(at, Direction.RIGHT);
+    const cell = new ArrowCell(at, Direction.RIGHT, 1);
 
     // Assert
     expect(cell.kind).toBe('ARROW');

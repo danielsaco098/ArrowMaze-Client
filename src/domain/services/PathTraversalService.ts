@@ -18,7 +18,10 @@ export class PathTraversalService {
       throw new NotAnArrowError(position);
     }
 
-    let next = position.translate(cell.direction);
+    // Walk from the arrow's leading cell (head) toward the edge. The arrow's own
+    // body cells are behind the head, so they never block its own path.
+    const head = board.headOfArrow(cell.arrowId);
+    let next = head.translate(cell.direction);
     while (board.isWithinBounds(next)) {
       if (!board.cellAt(next).isPassable()) {
         return false;
@@ -29,8 +32,8 @@ export class PathTraversalService {
   }
 
   /**
-   * The straight-line path the arrow would travel, from the first step up to and
-   * including the off-board position it exits through. Useful for animations.
+   * The straight-line path the arrow's head would travel, from its first step up
+   * to and including the off-board position it exits through. Useful for animations.
    */
   pathToEdge(board: Board, position: Position): Position[] {
     const cell = board.cellAt(position);
@@ -38,8 +41,9 @@ export class PathTraversalService {
       throw new NotAnArrowError(position);
     }
 
+    const head = board.headOfArrow(cell.arrowId);
     const path: Position[] = [];
-    let next = position.translate(cell.direction);
+    let next = head.translate(cell.direction);
     while (board.isWithinBounds(next)) {
       path.push(next);
       next = next.translate(cell.direction);

@@ -12,7 +12,10 @@ export function buildBoard(specs: CellSpec[][]): Board {
   return new Board(grid);
 }
 
-export const arrow = (direction: DirectionName): CellSpec => ({ kind: 'ARROW', direction });
+export const arrow = (
+  direction: DirectionName,
+  opts: { arrowId?: number; color?: string } = {},
+): CellSpec => ({ kind: 'ARROW', direction, ...opts });
 export const empty = (): CellSpec => ({ kind: 'EMPTY' });
 export const wall = (): CellSpec => ({ kind: 'WALL' });
 export const exit = (): CellSpec => ({ kind: 'EXIT' });

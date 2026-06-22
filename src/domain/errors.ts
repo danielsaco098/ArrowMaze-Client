@@ -65,6 +65,12 @@ export class NotAnArrowError extends DomainError {
   }
 }
 
+export class UnknownArrowError extends DomainError {
+  constructor(arrowId: number) {
+    super(`No arrow with id ${arrowId} exists on the board.`);
+  }
+}
+
 export class GameAlreadyOverError extends DomainError {
   constructor() {
     super('The game session is already finished; no further moves are allowed.');

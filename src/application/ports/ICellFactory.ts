@@ -8,6 +8,10 @@ export interface CellSpec {
   readonly kind: CellKind;
   /** Required only when `kind` is `'ARROW'`. */
   readonly direction?: DirectionName;
+  /** Cells sharing an arrowId belong to the same multi-cell arrow. */
+  readonly arrowId?: number;
+  /** Optional explicit color; defaults to a palette color derived from the arrowId. */
+  readonly color?: string;
 }
 
 /**
