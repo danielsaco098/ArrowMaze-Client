@@ -1,273 +1,29 @@
-import type { CellData, LevelData } from '../../application/ports/ILevelBuilder';
-import type { DirectionName } from '../../domain/value-objects/Direction';
+import type { LevelData } from '../../application/ports/ILevelBuilder';
+import { generateLevel, LevelConfig } from './levelGenerator';
 
 /**
- * The 15 hand-authored levels bundled with the app (Layer 4 content).
- *
- * Difficulty grows by board size, arrow count and the length of the forced
- * tap order: levels 1-5 are EASY, 6-10 MEDIUM, 11-15 HARD. Every level is
- * provably solvable — see `bundledLevels.test.ts`, which runs a greedy solver
- * over each board and asserts the whole board can be cleared.
- *
- * Authoring helpers keep the definitions terse:
- *   a(row, col, dir) → arrow, w(row, col) → wall, x(row, col) → exit.
- * Unlisted cells default to empty (see the level builder).
+ * The 15 bundled levels. Each is produced by the deterministic, solvable-by-
+ * construction {@link generateLevel} from a curated config: board size and arrow
+ * length grow with difficulty (5 EASY, 5 MEDIUM, 5 HARD), so every level is
+ * harder than the previous one. The seeds are fixed, so the levels never change.
+ * `bundledLevels.test.ts` re-verifies that all 15 are fully solvable.
  */
-const a = (row: number, col: number, direction: DirectionName): CellData => ({
-  row,
-  col,
-  kind: 'ARROW',
-  direction,
-});
-const w = (row: number, col: number): CellData => ({ row, col, kind: 'WALL' });
-const x = (row: number, col: number): CellData => ({ row, col, kind: 'EXIT' });
-
-export const BUNDLED_LEVELS: ReadonlyArray<LevelData> = [
-  // ---------------------------------------------------------------- EASY ----
-  {
-    id: 1,
-    name: 'First Steps',
-    difficulty: 'EASY',
-    rows: 3,
-    cols: 3,
-    cells: [a(0, 0, 'RIGHT'), a(2, 2, 'LEFT'), a(1, 1, 'UP')],
-  },
-  {
-    id: 2,
-    name: 'One After Another',
-    difficulty: 'EASY',
-    rows: 3,
-    cols: 3,
-    cells: [a(2, 0, 'RIGHT'), a(0, 0, 'DOWN'), a(0, 2, 'DOWN')],
-  },
-  {
-    id: 3,
-    name: 'Two Lanes',
-    difficulty: 'EASY',
-    rows: 4,
-    cols: 4,
-    cells: [a(0, 2, 'RIGHT'), a(0, 0, 'RIGHT'), a(2, 3, 'DOWN'), a(0, 3, 'DOWN')],
-  },
-  {
-    id: 4,
-    name: 'Around the Corner',
-    difficulty: 'EASY',
-    rows: 4,
-    cols: 4,
-    cells: [a(3, 0, 'RIGHT'), a(3, 3, 'RIGHT'), a(0, 0, 'DOWN'), a(1, 2, 'LEFT'), a(0, 3, 'LEFT')],
-  },
-  {
-    id: 5,
-    name: 'Wider Path',
-    difficulty: 'EASY',
-    rows: 4,
-    cols: 5,
-    cells: [
-      a(0, 0, 'RIGHT'),
-      a(0, 4, 'DOWN'),
-      a(3, 4, 'DOWN'),
-      a(3, 0, 'UP'),
-      a(1, 2, 'DOWN'),
-      a(2, 1, 'RIGHT'),
-    ],
-  },
-  // -------------------------------------------------------------- MEDIUM ----
-  {
-    id: 6,
-    name: 'First Wall',
-    difficulty: 'MEDIUM',
-    rows: 5,
-    cols: 5,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(2, 0, 'DOWN'),
-      a(4, 2, 'RIGHT'),
-      a(2, 4, 'DOWN'),
-      a(0, 4, 'LEFT'),
-      a(2, 2, 'UP'),
-      w(3, 2),
-    ],
-  },
-  {
-    id: 7,
-    name: 'Drain the Columns',
-    difficulty: 'MEDIUM',
-    rows: 5,
-    cols: 5,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(2, 0, 'DOWN'),
-      a(1, 2, 'DOWN'),
-      a(3, 2, 'DOWN'),
-      a(4, 0, 'RIGHT'),
-      a(0, 4, 'DOWN'),
-      a(2, 4, 'LEFT'),
-    ],
-  },
-  {
-    id: 8,
-    name: 'Crossroads',
-    difficulty: 'MEDIUM',
-    rows: 5,
-    cols: 6,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(2, 0, 'DOWN'),
-      a(0, 5, 'DOWN'),
-      a(2, 5, 'DOWN'),
-      a(0, 2, 'RIGHT'),
-      a(4, 1, 'RIGHT'),
-      a(2, 2, 'DOWN'),
-      a(2, 3, 'UP'),
-      w(1, 4),
-      w(2, 4),
-    ],
-  },
-  {
-    id: 9,
-    name: 'Full Board',
-    difficulty: 'MEDIUM',
-    rows: 6,
-    cols: 6,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(3, 0, 'DOWN'),
-      a(0, 5, 'DOWN'),
-      a(3, 5, 'DOWN'),
-      a(5, 1, 'RIGHT'),
-      a(0, 2, 'RIGHT'),
-      a(2, 3, 'DOWN'),
-      a(3, 2, 'RIGHT'),
-    ],
-  },
-  {
-    id: 10,
-    name: 'Mind the Exit',
-    difficulty: 'MEDIUM',
-    rows: 6,
-    cols: 6,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(3, 0, 'DOWN'),
-      a(0, 5, 'DOWN'),
-      a(3, 5, 'DOWN'),
-      a(5, 0, 'RIGHT'),
-      a(5, 5, 'RIGHT'),
-      a(0, 2, 'RIGHT'),
-      a(2, 2, 'DOWN'),
-      a(2, 3, 'DOWN'),
-      w(1, 3),
-      w(4, 1),
-      x(5, 4),
-    ],
-  },
-  // ---------------------------------------------------------------- HARD ----
-  {
-    id: 11,
-    name: 'Triple Drain',
-    difficulty: 'HARD',
-    rows: 6,
-    cols: 6,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(2, 0, 'DOWN'),
-      a(4, 0, 'DOWN'),
-      a(0, 5, 'DOWN'),
-      a(2, 5, 'DOWN'),
-      a(4, 5, 'DOWN'),
-      a(0, 2, 'RIGHT'),
-      a(5, 1, 'RIGHT'),
-      a(2, 2, 'DOWN'),
-      a(2, 3, 'UP'),
-    ],
-  },
-  {
-    id: 12,
-    name: 'Long Hall',
-    difficulty: 'HARD',
-    rows: 6,
-    cols: 7,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(3, 0, 'DOWN'),
-      a(0, 6, 'DOWN'),
-      a(3, 6, 'DOWN'),
-      a(0, 2, 'RIGHT'),
-      a(5, 1, 'RIGHT'),
-      a(5, 3, 'RIGHT'),
-      a(2, 3, 'DOWN'),
-      a(2, 4, 'DOWN'),
-      a(4, 5, 'RIGHT'),
-      w(1, 3),
-      w(4, 2),
-    ],
-  },
-  {
-    id: 13,
-    name: 'Tall Order',
-    difficulty: 'HARD',
-    rows: 7,
-    cols: 6,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(3, 0, 'DOWN'),
-      a(5, 0, 'DOWN'),
-      a(0, 5, 'DOWN'),
-      a(3, 5, 'DOWN'),
-      a(5, 5, 'DOWN'),
-      a(0, 2, 'RIGHT'),
-      a(6, 1, 'RIGHT'),
-      a(2, 2, 'DOWN'),
-      a(2, 3, 'DOWN'),
-      a(4, 3, 'RIGHT'),
-    ],
-  },
-  {
-    id: 14,
-    name: 'Gridlock',
-    difficulty: 'HARD',
-    rows: 7,
-    cols: 7,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(3, 0, 'DOWN'),
-      a(5, 0, 'DOWN'),
-      a(0, 6, 'DOWN'),
-      a(3, 6, 'DOWN'),
-      a(5, 6, 'DOWN'),
-      a(0, 2, 'RIGHT'),
-      a(6, 1, 'RIGHT'),
-      a(6, 3, 'RIGHT'),
-      a(2, 3, 'DOWN'),
-      a(2, 4, 'DOWN'),
-      a(4, 2, 'RIGHT'),
-      w(1, 4),
-      w(5, 5),
-    ],
-  },
-  {
-    id: 15,
-    name: 'The Great Escape',
-    difficulty: 'HARD',
-    rows: 7,
-    cols: 7,
-    cells: [
-      a(0, 0, 'DOWN'),
-      a(2, 0, 'DOWN'),
-      a(4, 0, 'DOWN'),
-      a(0, 6, 'DOWN'),
-      a(2, 6, 'DOWN'),
-      a(4, 6, 'DOWN'),
-      a(0, 3, 'RIGHT'),
-      a(6, 2, 'RIGHT'),
-      a(3, 3, 'DOWN'),
-      a(3, 4, 'UP'),
-      a(5, 2, 'RIGHT'),
-      a(1, 2, 'RIGHT'),
-      w(2, 3),
-      w(4, 4),
-      x(6, 5),
-      x(0, 5),
-    ],
-  },
+const LEVEL_CONFIGS: LevelConfig[] = [
+  { id: 1, name: 'First Steps', difficulty: 'EASY', rows: 3, cols: 3, seed: 1011, maxLength: 2 },
+  { id: 2, name: 'Warming Up', difficulty: 'EASY', rows: 3, cols: 4, seed: 1027, maxLength: 2 },
+  { id: 3, name: 'Two Lanes', difficulty: 'EASY', rows: 4, cols: 4, seed: 1033, maxLength: 2 },
+  { id: 4, name: 'Wider Path', difficulty: 'EASY', rows: 4, cols: 5, seed: 1049, maxLength: 2 },
+  { id: 5, name: 'Full Square', difficulty: 'EASY', rows: 5, cols: 5, seed: 1051, maxLength: 2 },
+  { id: 6, name: 'Longer Arrows', difficulty: 'MEDIUM', rows: 5, cols: 5, seed: 2063, maxLength: 3 },
+  { id: 7, name: 'Crossroads', difficulty: 'MEDIUM', rows: 5, cols: 6, seed: 2069, maxLength: 3 },
+  { id: 8, name: 'Packed Grid', difficulty: 'MEDIUM', rows: 6, cols: 6, seed: 2081, maxLength: 3 },
+  { id: 9, name: 'Tight Fit', difficulty: 'MEDIUM', rows: 6, cols: 6, seed: 2099, maxLength: 3 },
+  { id: 10, name: 'Big Board', difficulty: 'MEDIUM', rows: 6, cols: 7, seed: 2111, maxLength: 3 },
+  { id: 11, name: 'Long Hall', difficulty: 'HARD', rows: 7, cols: 6, seed: 3137, maxLength: 3 },
+  { id: 12, name: 'Gridlock', difficulty: 'HARD', rows: 7, cols: 7, seed: 3163, maxLength: 3 },
+  { id: 13, name: 'Tangled', difficulty: 'HARD', rows: 7, cols: 7, seed: 3169, maxLength: 3 },
+  { id: 14, name: 'Sprawl', difficulty: 'HARD', rows: 7, cols: 8, seed: 3181, maxLength: 3 },
+  { id: 15, name: 'The Great Escape', difficulty: 'HARD', rows: 8, cols: 8, seed: 3191, maxLength: 3 },
 ];
+
+export const BUNDLED_LEVELS: ReadonlyArray<LevelData> = LEVEL_CONFIGS.map(generateLevel);

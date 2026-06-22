@@ -72,4 +72,25 @@ describe('bundled levels', () => {
       expect(stuck).toBe(0);
     },
   );
+
+  it('should_densely_fill_every_board_with_arrows', () => {
+    for (const level of BUNDLED_LEVELS) {
+      const arrowCells = level.cells.filter((c) => c.kind === 'ARROW').length;
+      const fill = arrowCells / (level.rows * level.cols);
+      expect(fill).toBeGreaterThanOrEqual(0.85);
+    }
+  });
+
+  it('should_use_multi_cell_arrows_in_medium_and_hard_levels', () => {
+    for (const level of BUNDLED_LEVELS.filter((l) => l.difficulty !== 'EASY')) {
+      const sizeByArrow = new Map<number, number>();
+      for (const cell of level.cells) {
+        if (cell.kind === 'ARROW' && cell.arrowId !== undefined) {
+          sizeByArrow.set(cell.arrowId, (sizeByArrow.get(cell.arrowId) ?? 0) + 1);
+        }
+      }
+      const hasMultiCell = [...sizeByArrow.values()].some((len) => len >= 2);
+      expect(hasMultiCell).toBe(true);
+    }
+  });
 });
