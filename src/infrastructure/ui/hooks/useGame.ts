@@ -24,6 +24,7 @@ export function useGame(levelId: number) {
   const sessionRef = useRef<GameSession | null>(null);
   const boardRef = useRef<Board | null>(null);
   const levelRef = useRef<Level | null>(null);
+  const holesRef = useRef<ReadonlySet<string>>(new Set());
   const startedAtRef = useRef<number>(0);
 
   const [status, setStatus] = useState<GameViewStatus>('LOADING');
@@ -39,6 +40,15 @@ export function useGame(levelId: number) {
     levelRef.current = level;
     sessionRef.current = session;
     boardRef.current = level.board;
+    // Snapshot which cells start empty/blocked: those stay black holes, while a
+    // cell an arrow later slides out of must NOT turn black (it had an arrow now).
+    const holes = new Set<string>();
+    for (const cell of level.board.cells()) {
+      if (cell.kind !== 'ARROW') {
+        holes.add(`${cell.position.row},${cell.position.col}`);
+      }
+    }
+    holesRef.current = holes;
     startedAtRef.current = Date.now();
     setLives(session.lives.count);
     setMoves(0);
@@ -86,6 +96,7 @@ export function useGame(levelId: number) {
     moves,
     outcome,
     board: boardRef.current,
+    holes: holesRef.current,
     level: levelRef.current,
     onTapCell,
     retry: load,

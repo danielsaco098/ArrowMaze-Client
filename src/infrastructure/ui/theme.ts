@@ -9,7 +9,7 @@ export const theme = {
     text: '#F2F4FF',
     muted: '#9AA0C7',
     arrow: '#6FE3C4',
-    wall: '#3A3F63',
+    hole: '#000000',
     exit: '#FFD166',
     danger: '#FF6B6B',
     success: '#6FE3C4',
