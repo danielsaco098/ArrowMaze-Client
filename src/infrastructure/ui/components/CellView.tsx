@@ -1,9 +1,9 @@
 import React from 'react';
-import { Pressable, View, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import type { Cell } from '../../../domain/entities/Cell';
 import { ArrowCell } from '../../../domain/entities/ArrowCell';
 import type { Position } from '../../../domain/value-objects/Position';
-import { ArrowGlyph } from './ArrowGlyph';
+import { ArrowPiece } from './ArrowPiece';
 import { theme } from '../theme';
 
 interface Props {
@@ -11,23 +11,28 @@ interface Props {
   size: number;
   /** True when this cell is the leading cell (head) of its arrow. */
   isHead: boolean;
+  /** True when this cell is the trailing cell (tail) of its arrow. */
+  isTail: boolean;
+  /** True when this position started the level empty/blocked (a permanent hole). */
+  isHole: boolean;
   onPress: (position: Position) => void;
 }
 
 /**
- * Renders one board cell; only arrows are interactive. A multi-cell arrow shows
- * its arrowhead only on the head cell, while the body cells are a plain coloured
- * block, so the whole arrow reads as a single coloured piece.
+ * Renders one board cell. Arrows are drawn as thin coloured lines over a
+ * transparent cell, so only the arrow shows. A permanent hole is solid black; a
+ * cell an arrow has slid out of stays transparent, blending into the background.
+ * Only arrows are interactive.
  */
-export function CellView({ cell, size, isHead, onPress }: Props): React.JSX.Element {
+export function CellView({ cell, size, isHead, isTail, isHole, onPress }: Props): React.JSX.Element {
   const isArrow = cell instanceof ArrowCell;
   const backgroundColor = isArrow
-    ? (cell as ArrowCell).color
-    : cell.kind === 'WALL'
-      ? theme.colors.wall
-      : cell.kind === 'EXIT'
-        ? theme.colors.exit
-        : theme.colors.surfaceAlt;
+    ? 'transparent'
+    : cell.kind === 'EXIT'
+      ? theme.colors.exit
+      : isHole
+        ? theme.colors.hole // a permanent black hole
+        : 'transparent'; // a space an arrow has left behind
 
   return (
     <Pressable
@@ -37,19 +42,21 @@ export function CellView({ cell, size, isHead, onPress }: Props): React.JSX.Elem
       onPress={() => onPress(cell.position)}
       style={[styles.cell, { width: size, height: size, backgroundColor }]}
     >
-      {isArrow && isHead ? (
-        <ArrowGlyph direction={(cell as ArrowCell).direction.name} />
-      ) : (
-        <View />
-      )}
+      {isArrow ? (
+        <ArrowPiece
+          direction={(cell as ArrowCell).direction.name}
+          color={(cell as ArrowCell).color}
+          isHead={isHead}
+          isTail={isTail}
+          size={size}
+        />
+      ) : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   cell: {
-    margin: 2,
-    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },

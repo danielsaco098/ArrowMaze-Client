@@ -18,7 +18,7 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   const { t } = useTranslation();
   const container = useContainer();
   const { token } = useSession();
-  const { status, lives, moves, outcome, board, level, onTapCell, retry } = useGame(levelId);
+  const { status, lives, moves, outcome, board, holes, level, onTapCell, retry } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
 
@@ -48,7 +48,7 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
 
       <View style={styles.boardArea}>
         {board ? (
-          <BoardView board={board} onTapCell={onTapCell} />
+          <BoardView board={board} holes={holes} onTapCell={onTapCell} />
         ) : (
           <Text style={styles.loading}>{t('common.loading')}</Text>
         )}

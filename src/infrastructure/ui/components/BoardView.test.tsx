@@ -13,20 +13,24 @@ describe('BoardView', () => {
     ]);
 
     // Act
-    const { getByTestId, getByText } = await render(<BoardView board={board} onTapCell={() => {}} />);
+    const { getByTestId, getByLabelText } = await render(
+      <BoardView board={board} holes={new Set()} onTapCell={() => {}} />,
+    );
 
     // Assert
     expect(getByTestId('board')).toBeTruthy();
     expect(getByTestId('cell-0-0')).toBeTruthy();
     expect(getByTestId('cell-1-1')).toBeTruthy();
-    expect(getByText('→')).toBeTruthy();
+    expect(getByLabelText('arrow-right')).toBeTruthy();
   });
 
   it('should_invoke_onTapCell_with_the_position_when_an_arrow_is_pressed', async () => {
     // Arrange
     const board = buildBoard([[arrow('RIGHT'), empty()]]);
     const onTapCell = jest.fn();
-    const { getByTestId } = await render(<BoardView board={board} onTapCell={onTapCell} />);
+    const { getByTestId } = await render(
+      <BoardView board={board} holes={new Set()} onTapCell={onTapCell} />,
+    );
 
     // Act
     await fireEvent.press(getByTestId('cell-0-0'));
