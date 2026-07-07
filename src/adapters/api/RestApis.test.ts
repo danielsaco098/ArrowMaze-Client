@@ -38,6 +38,16 @@ describe('RestLeaderboardApi', () => {
     expect(http.calls[0]).toMatchObject({ method: 'GET', path: '/leaderboard/1', options: { query: { limit: 5 } } });
     expect(top[0].score).toBe(900);
   });
+
+  it('should_request_the_overall_ranking', async () => {
+    const http = new FakeHttpClient(() => [{ username: 'a', totalScore: 4200, levelsPlayed: 5 }]);
+    const api = new RestLeaderboardApi(http);
+
+    const overall = await api.topOverall(5);
+
+    expect(http.calls[0]).toMatchObject({ method: 'GET', path: '/leaderboard', options: { query: { limit: 5 } } });
+    expect(overall[0].totalScore).toBe(4200);
+  });
 });
 
 describe('RestProgressApi', () => {
