@@ -7,6 +7,7 @@ describe('GetLeaderboardUseCase', () => {
     const entries = [{ levelId: 3, username: 'ana', score: 900, achievedAt: '2026-07-01' }];
     const api: jest.Mocked<ILeaderboardApi> = {
       topForLevel: jest.fn().mockResolvedValue(entries),
+      topOverall: jest.fn(),
     };
     const useCase = new GetLeaderboardUseCase(api);
 

@@ -16,6 +16,10 @@ import {
   GetLeaderboardUseCase,
   GetLeaderboardInput,
 } from '../../application/use-cases/GetLeaderboardUseCase';
+import {
+  GetOverallLeaderboardUseCase,
+  GetOverallLeaderboardInput,
+} from '../../application/use-cases/GetOverallLeaderboardUseCase';
 import { LoggingUseCaseDecorator } from '../../application/decorators/LoggingUseCaseDecorator';
 import { MetricsUseCaseDecorator } from '../../application/decorators/MetricsUseCaseDecorator';
 import { ExceptionHandlingUseCaseDecorator } from '../../application/decorators/ExceptionHandlingUseCaseDecorator';
@@ -34,7 +38,11 @@ import { ConsoleMetricsRecorder } from '../observability/ConsoleMetricsRecorder'
 import { AsyncStorageKeyValue } from '../storage/AsyncStorageKeyValue';
 import { AudioManager } from '../audio/AudioManager';
 import type { IAuthApi } from '../../application/ports/IAuthApi';
-import type { ILeaderboardApi, LeaderboardEntry } from '../../application/ports/ILeaderboardApi';
+import type {
+  ILeaderboardApi,
+  LeaderboardEntry,
+  OverallLeaderboardEntry,
+} from '../../application/ports/ILeaderboardApi';
 import type { IProgressApi, RemoteProgressRecord } from '../../application/ports/IProgressApi';
 import { FetchHttpClient } from '../http/FetchHttpClient';
 import { RestAuthApi } from '../../adapters/api/RestAuthApi';
@@ -54,6 +62,7 @@ export interface AppContainer {
   /** Auth-required use cases, guarded by the authentication aspect. */
   readonly syncProgress: UseCase<SyncProgressInput, RemoteProgressRecord[]>;
   readonly getLeaderboard: UseCase<GetLeaderboardInput, LeaderboardEntry[]>;
+  readonly getOverallLeaderboard: UseCase<GetOverallLeaderboardInput, OverallLeaderboardEntry[]>;
   /** Backend API clients (online features: auth, leaderboard, progress sync). */
   readonly authApi: IAuthApi;
   readonly leaderboardApi: ILeaderboardApi;
@@ -121,6 +130,10 @@ export function createContainer(): AppContainer {
     getLeaderboard: withAspects(
       requireSession(new GetLeaderboardUseCase(leaderboardApi), 'GetLeaderboard'),
       'GetLeaderboard',
+    ),
+    getOverallLeaderboard: withAspects(
+      requireSession(new GetOverallLeaderboardUseCase(leaderboardApi), 'GetOverallLeaderboard'),
+      'GetOverallLeaderboard',
     ),
     authApi: new RestAuthApi(http),
     leaderboardApi,

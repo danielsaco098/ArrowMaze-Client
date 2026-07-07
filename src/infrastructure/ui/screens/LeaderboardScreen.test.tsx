@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import { LeaderboardScreen } from './LeaderboardScreen';
 import { AppContainerProvider } from '../AppContainerContext';
 import { I18nProvider } from '../i18n/I18nContext';
@@ -52,6 +52,29 @@ describe('LeaderboardScreen', () => {
 
     // Assert: the error message mentions the server being offline
     await waitFor(() => expect(getByText(/offline|apagado/i)).toBeTruthy());
+  });
+
+  it('should_switch_to_the_overall_ranking_and_refetch_when_the_total_tab_is_pressed', async () => {
+    // Arrange
+    const container = makeFakeContainer();
+    (container.getLeaderboard.execute as jest.Mock).mockResolvedValue([
+      { levelId: 1, username: 'bob', score: 950, achievedAt: 'x' },
+    ]);
+    (container.getOverallLeaderboard.execute as jest.Mock).mockResolvedValue([
+      { username: 'ana', totalScore: 4200, levelsPlayed: 5 },
+      { username: 'bob', totalScore: 950, levelsPlayed: 1 },
+    ]);
+    const { getByTestId, getByText } = await renderLeaderboard(container);
+    await waitFor(() => expect(getByTestId('entry-0')).toBeTruthy());
+
+    // Act: switch to the Total tab
+    await fireEvent.press(getByTestId('tab-total'));
+
+    // Assert: the overall use case is called and the totals render
+    await waitFor(() => expect(getByText('ana')).toBeTruthy());
+    expect(container.getOverallLeaderboard.execute).toHaveBeenCalledWith({});
+    expect(getByText('4200')).toBeTruthy();
+    expect(getByText(/5 (levels|niveles)/)).toBeTruthy();
   });
 
   it('should_ask_the_player_to_sign_in_when_the_session_is_missing', async () => {
