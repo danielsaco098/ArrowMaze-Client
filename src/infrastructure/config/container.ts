@@ -8,9 +8,18 @@ import {
   RecordLevelResultOutput,
 } from '../../application/use-cases/RecordLevelResultUseCase';
 import { GetProgressUseCase } from '../../application/use-cases/GetProgressUseCase';
+import {
+  SyncProgressUseCase,
+  SyncProgressInput,
+} from '../../application/use-cases/SyncProgressUseCase';
+import {
+  GetLeaderboardUseCase,
+  GetLeaderboardInput,
+} from '../../application/use-cases/GetLeaderboardUseCase';
 import { LoggingUseCaseDecorator } from '../../application/decorators/LoggingUseCaseDecorator';
 import { MetricsUseCaseDecorator } from '../../application/decorators/MetricsUseCaseDecorator';
 import { ExceptionHandlingUseCaseDecorator } from '../../application/decorators/ExceptionHandlingUseCaseDecorator';
+import { AuthenticationUseCaseDecorator } from '../../application/decorators/AuthenticationUseCaseDecorator';
 import { BundledLevelRepository } from '../../adapters/repositories/BundledLevelRepository';
 import { LocalProgressRepository } from '../../adapters/repositories/LocalProgressRepository';
 import { InMemoryEventBus } from '../../adapters/events/InMemoryEventBus';
@@ -25,8 +34,8 @@ import { ConsoleMetricsRecorder } from '../observability/ConsoleMetricsRecorder'
 import { AsyncStorageKeyValue } from '../storage/AsyncStorageKeyValue';
 import { AudioManager } from '../audio/AudioManager';
 import type { IAuthApi } from '../../application/ports/IAuthApi';
-import type { ILeaderboardApi } from '../../application/ports/ILeaderboardApi';
-import type { IProgressApi } from '../../application/ports/IProgressApi';
+import type { ILeaderboardApi, LeaderboardEntry } from '../../application/ports/ILeaderboardApi';
+import type { IProgressApi, RemoteProgressRecord } from '../../application/ports/IProgressApi';
 import { FetchHttpClient } from '../http/FetchHttpClient';
 import { RestAuthApi } from '../../adapters/api/RestAuthApi';
 import { RestLeaderboardApi } from '../../adapters/api/RestLeaderboardApi';
@@ -42,6 +51,9 @@ export interface AppContainer {
   readonly tapCell: UseCase<TapCellInput, TapResult>;
   readonly recordResult: UseCase<RecordLevelResultInput, RecordLevelResultOutput>;
   readonly getProgress: UseCase<void, PlayerProgress>;
+  /** Auth-required use cases, guarded by the authentication aspect. */
+  readonly syncProgress: UseCase<SyncProgressInput, RemoteProgressRecord[]>;
+  readonly getLeaderboard: UseCase<GetLeaderboardInput, LeaderboardEntry[]>;
   /** Backend API clients (online features: auth, leaderboard, progress sync). */
   readonly authApi: IAuthApi;
   readonly leaderboardApi: ILeaderboardApi;
@@ -69,8 +81,11 @@ export function createContainer(): AppContainer {
   const progress = new LocalProgressRepository(storage);
   const scoring = new StandardScoringStrategy();
 
-  // Backend HTTP clients (online features).
+  // Backend HTTP clients (online features) and the persisted session.
   const http = new FetchHttpClient(apiConfig.baseUrl);
+  const leaderboardApi = new RestLeaderboardApi(http);
+  const progressApi = new RestProgressApi(http);
+  const session = new SessionStore(storage);
 
   // Audio reacts to game events through the bus (Observer), gated by the
   // AudioManager singleton's mute flag.
@@ -87,6 +102,11 @@ export function createContainer(): AppContainer {
       name,
     );
 
+  // Authentication aspect: auth-required use cases are wrapped so an active
+  // session is verified automatically before they execute.
+  const requireSession = <I, O>(useCase: UseCase<I, O>, name: string): UseCase<I, O> =>
+    new AuthenticationUseCaseDecorator(useCase, name, session);
+
   return {
     levels,
     eventBus,
@@ -94,9 +114,17 @@ export function createContainer(): AppContainer {
     tapCell: withAspects(new TapCellUseCase(eventBus), 'TapCell'),
     recordResult: withAspects(new RecordLevelResultUseCase(scoring, progress), 'RecordLevelResult'),
     getProgress: withAspects(new GetProgressUseCase(progress), 'GetProgress'),
+    syncProgress: withAspects(
+      requireSession(new SyncProgressUseCase(progressApi, session), 'SyncProgress'),
+      'SyncProgress',
+    ),
+    getLeaderboard: withAspects(
+      requireSession(new GetLeaderboardUseCase(leaderboardApi), 'GetLeaderboard'),
+      'GetLeaderboard',
+    ),
     authApi: new RestAuthApi(http),
-    leaderboardApi: new RestLeaderboardApi(http),
-    progressApi: new RestProgressApi(http),
-    session: new SessionStore(storage),
+    leaderboardApi,
+    progressApi,
+    session,
   };
 }

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { useContainer } from '../AppContainerContext';
-import { useSession } from '../session/SessionContext';
 import { useGame } from '../hooks/useGame';
 import { BoardView } from '../components/BoardView';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -17,20 +16,22 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   const { navigate } = useNavigation();
   const { t } = useTranslation();
   const container = useContainer();
-  const { token } = useSession();
   const { status, lives, moves, outcome, board, holes, level, onTapCell, retry } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
 
-  // On victory, if the player is signed in, push the score to the backend so it
-  // appears on the global leaderboard. Best-effort: a server-offline error is
-  // swallowed and never blocks play.
+  // On victory, push the score to the backend so it appears on the global
+  // leaderboard. The use case is guarded by the authentication aspect, so no
+  // manual token check is needed here. Best-effort: guest play (not signed in)
+  // and server-offline errors are swallowed and never block play.
   const score = outcome.score;
   useEffect(() => {
-    if (status === GameStatus.Victory && score !== undefined && token) {
-      void container.progressApi.sync(token, [{ levelId, score }]).catch(() => undefined);
+    if (status === GameStatus.Victory && score !== undefined) {
+      void container.syncProgress
+        .execute({ results: [{ levelId, score }] })
+        .catch(() => undefined);
     }
-  }, [status, score, token, levelId, container]);
+  }, [status, score, levelId, container]);
 
   return (
     <View style={styles.container}>

@@ -5,11 +5,14 @@ import { useContainer } from '../AppContainerContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { useSession } from '../session/SessionContext';
 import type { LeaderboardEntry } from '../../../application/ports/ILeaderboardApi';
+import { NotAuthenticatedError } from '../../../application/errors';
+import { PrimaryButton } from '../components/PrimaryButton';
 import { theme } from '../theme';
 
 type State =
   | { status: 'loading' }
   | { status: 'error' }
+  | { status: 'unauthenticated' }
   | { status: 'ready'; entries: LeaderboardEntry[] };
 
 export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.Element {
@@ -22,10 +25,20 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
   useEffect(() => {
     let active = true;
     setState({ status: 'loading' });
-    container.leaderboardApi
-      .topForLevel(levelId)
+    // Auth-required use case: the authentication aspect rejects with
+    // NotAuthenticatedError when nobody is signed in.
+    container.getLeaderboard
+      .execute({ levelId })
       .then((entries) => active && setState({ status: 'ready', entries }))
-      .catch(() => active && setState({ status: 'error' }));
+      .catch(
+        (error: unknown) =>
+          active &&
+          setState(
+            error instanceof NotAuthenticatedError
+              ? { status: 'unauthenticated' }
+              : { status: 'error' },
+          ),
+      );
     return () => {
       active = false;
     };
@@ -47,6 +60,18 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
 
       {state.status === 'loading' && <ActivityIndicator testID="loading" color={theme.colors.primary} />}
       {state.status === 'error' && <Text style={styles.message}>{t('leaderboard.error')}</Text>}
+      {state.status === 'unauthenticated' && (
+        <View testID="auth-required">
+          <Text style={styles.message}>{t('leaderboard.signInRequired')}</Text>
+          <View style={styles.signInAction}>
+            <PrimaryButton
+              testID="go-login-button"
+              label={t('login.signIn')}
+              onPress={() => navigate({ name: 'login' })}
+            />
+          </View>
+        </View>
+      )}
       {state.status === 'ready' && state.entries.length === 0 && (
         <Text style={styles.message}>{t('leaderboard.empty')}</Text>
       )}
@@ -80,6 +105,7 @@ const styles = StyleSheet.create({
   spacer: { width: 40 },
   title: { color: theme.colors.text, fontSize: 18, fontWeight: '800' },
   message: { color: theme.colors.muted, textAlign: 'center', marginTop: theme.spacing(4), paddingHorizontal: theme.spacing(2) },
+  signInAction: { alignItems: 'center', marginTop: theme.spacing(2) },
   list: { paddingVertical: theme.spacing(2), gap: theme.spacing(1) },
   row: {
     flexDirection: 'row',
