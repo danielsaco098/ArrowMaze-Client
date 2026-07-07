@@ -4,7 +4,7 @@ import type { AuthCredentials, AuthSession } from '../../../application/ports/IA
 import { HttpError } from '../../../application/ports/IHttpClient';
 
 type AuthUser = AuthSession['user'];
-export type AuthErrorKind = 'invalid' | 'taken' | 'network' | null;
+export type AuthErrorKind = 'invalid' | 'taken' | 'validation' | 'network' | null;
 
 interface SessionApi {
   readonly user: AuthUser | null;
@@ -24,6 +24,9 @@ function classifyError(error: unknown): AuthErrorKind {
   if (error instanceof HttpError) {
     if (error.status === 401) return 'invalid';
     if (error.status === 409) return 'taken';
+    // The backend rejected the payload (e.g. password shorter than 6 chars):
+    // tell the user what to fix instead of blaming the connection.
+    if (error.status === 400 || error.status === 422) return 'validation';
   }
   return 'network';
 }

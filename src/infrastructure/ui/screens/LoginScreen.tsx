@@ -19,9 +19,11 @@ export function LoginScreen(): React.JSX.Element {
       ? t('login.errorInvalid')
       : error === 'taken'
         ? t('login.errorTaken')
-        : error === 'network'
-          ? t('login.errorNetwork')
-          : null;
+        : error === 'validation'
+          ? t('login.errorValidation')
+          : error === 'network'
+            ? t('login.errorNetwork')
+            : null;
 
   const submit = async (action: typeof login) => {
     const ok = await action({ username: username.trim(), password });

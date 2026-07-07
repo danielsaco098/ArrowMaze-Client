@@ -70,4 +70,20 @@ describe('LoginScreen', () => {
     // Assert
     await waitFor(() => expect(getByTestId('login-error')).toBeTruthy());
   });
+
+  it('should_explain_the_rules_when_the_backend_rejects_the_payload', async () => {
+    // Arrange: e.g. a password shorter than 6 chars -> HTTP 400, not a network issue
+    const container = makeFakeContainer();
+    (container.authApi.register as jest.Mock).mockRejectedValue(new HttpError(400, 'too short'));
+    const { getByTestId, getByText } = await renderLogin(container);
+
+    // Act
+    await fireEvent.changeText(getByTestId('username-input'), 'juan');
+    await fireEvent.changeText(getByTestId('password-input'), '1234');
+    await fireEvent.press(getByTestId('register-button'));
+
+    // Assert: the validation message (not the "server offline" one) is shown
+    await waitFor(() => expect(getByTestId('login-error')).toBeTruthy());
+    expect(getByText(/at least 6|al menos 6/)).toBeTruthy();
+  });
 });
