@@ -37,6 +37,7 @@ const en = {
   'leaderboard.title': 'Leaderboard — Level {level}',
   'leaderboard.empty': 'No scores yet. Be the first!',
   'leaderboard.error': 'Could not load the leaderboard (server offline?).',
+  'leaderboard.signInRequired': 'Sign in to see the global leaderboard.',
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -77,6 +78,7 @@ const es: Record<TranslationKey, string> = {
   'leaderboard.title': 'Clasificación — Nivel {level}',
   'leaderboard.empty': 'Aún no hay puntajes. ¡Sé el primero!',
   'leaderboard.error': 'No se pudo cargar la clasificación (¿servidor apagado?).',
+  'leaderboard.signInRequired': 'Inicia sesión para ver la clasificación global.',
 };
 
 export const TRANSLATIONS: Record<Language, Record<TranslationKey, string>> = { en, es };

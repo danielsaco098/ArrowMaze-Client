@@ -14,3 +14,10 @@ export class LevelNotFoundError extends ApplicationError {
     super(`Level ${id} was not found.`);
   }
 }
+
+/** Raised when an auth-required use case runs without an active session. */
+export class NotAuthenticatedError extends ApplicationError {
+  constructor(operation: string) {
+    super(`"${operation}" requires an active session. Sign in first.`);
+  }
+}

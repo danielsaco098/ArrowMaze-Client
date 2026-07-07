@@ -13,6 +13,8 @@ export function makeFakeContainer(overrides: Partial<AppContainer> = {}): AppCon
     tapCell: { execute: jest.fn() },
     recordResult: { execute: jest.fn() },
     getProgress: { execute: jest.fn() },
+    syncProgress: { execute: jest.fn().mockResolvedValue([]) },
+    getLeaderboard: { execute: jest.fn().mockResolvedValue([]) },
     authApi: { login: jest.fn(), register: jest.fn() },
     leaderboardApi: { topForLevel: jest.fn().mockResolvedValue([]) },
     progressApi: { sync: jest.fn().mockResolvedValue([]), getProgress: jest.fn().mockResolvedValue([]) },
@@ -20,6 +22,7 @@ export function makeFakeContainer(overrides: Partial<AppContainer> = {}): AppCon
       load: jest.fn().mockResolvedValue(null),
       save: jest.fn().mockResolvedValue(undefined),
       clear: jest.fn().mockResolvedValue(undefined),
+      getToken: jest.fn().mockResolvedValue(null),
     },
   } as unknown as AppContainer;
 
