@@ -281,18 +281,27 @@ Cross-cutting concerns are kept out of the domain/use-case code **without an AOP
 strategy). Each use case is wrapped at the [Composition Root](./src/infrastructure/config/container.ts):
 
 ```
-TapCellUseCase
-  └─ wrapped by → LoggingUseCaseDecorator      (logs input/output + duration)
-       └─ wrapped by → MetricsUseCaseDecorator      (profiles execution time)
-            └─ wrapped by → ExceptionHandlingUseCaseDecorator (centralized retry/fallback)
+GetLeaderboardUseCase
+  └─ wrapped by → CachingUseCaseDecorator          (memoizes results for a TTL)
+       └─ wrapped by → AuthenticationUseCaseDecorator   (verifies an active session first)
+            └─ wrapped by → LoggingUseCaseDecorator          (logs input/output + duration)
+                 └─ wrapped by → MetricsUseCaseDecorator          (profiles execution time)
+                      └─ wrapped by → ExceptionHandlingUseCaseDecorator (centralized retry/fallback)
 ```
 
 Because every use case implements the same `execute(input): Promise<output>` contract, decorators
-compose transparently and the business code never references a logger, profiler, or error handler.
+compose transparently and the business code never references a logger, profiler, error handler, session
+check or cache.
 
-**Implemented aspects:** [Logging & tracing](./src/application/decorators/LoggingUseCaseDecorator.ts) ·
-[Performance metrics](./src/application/decorators/MetricsUseCaseDecorator.ts) ·
-[Centralized exception handling](./src/application/decorators/ExceptionHandlingUseCaseDecorator.ts) (retry + fallback).
+**All five aspects suggested by the brief are implemented:**
+
+| Aspect | Decorator | What it does |
+| --- | --- | --- |
+| Logging & tracing | [`LoggingUseCaseDecorator`](./src/application/decorators/LoggingUseCaseDecorator.ts) | Logs entry, exit and duration of every use case — zero log calls in business code. |
+| Centralized exception handling | [`ExceptionHandlingUseCaseDecorator`](./src/application/decorators/ExceptionHandlingUseCaseDecorator.ts) | Retries and fallbacks in one place; use cases just throw. |
+| Performance metrics / profiling | [`MetricsUseCaseDecorator`](./src/application/decorators/MetricsUseCaseDecorator.ts) | Times each execution to spot bottlenecks without instrumenting methods. |
+| Security & authorization | [`AuthenticationUseCaseDecorator`](./src/application/decorators/AuthenticationUseCaseDecorator.ts) | Automatically verifies an active session BEFORE auth-required use cases (progress sync, global leaderboard) run. |
+| Result caching | [`CachingUseCaseDecorator`](./src/application/decorators/CachingUseCaseDecorator.ts) | Memoizes leaderboard queries per input for a 15s TTL, so tab switches don't re-hit the network. |
 
 ---
 
