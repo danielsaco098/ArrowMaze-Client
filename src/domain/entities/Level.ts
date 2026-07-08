@@ -12,5 +12,7 @@ export class Level {
     public readonly name: string,
     public readonly difficulty: Difficulty,
     public readonly board: Board,
+    /** Seconds allowed to clear the board; undefined = untimed (advanced levels only). */
+    public readonly timeLimitSeconds?: number,
   ) {}
 }

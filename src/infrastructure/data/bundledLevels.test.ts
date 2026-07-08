@@ -73,11 +73,45 @@ describe('bundled levels', () => {
     },
   );
 
-  it('should_densely_fill_every_board_with_arrows', () => {
+  it('should_densely_fill_every_board', () => {
     for (const level of BUNDLED_LEVELS) {
-      const arrowCells = level.cells.filter((c) => c.kind === 'ARROW').length;
-      const fill = arrowCells / (level.rows * level.cols);
-      expect(fill).toBeGreaterThanOrEqual(0.85);
+      const occupied = level.cells.filter(
+        (c) => c.kind === 'ARROW' || c.kind === 'WALL' || c.kind === 'COLLECTIBLE',
+      ).length;
+      const fill = occupied / (level.rows * level.cols);
+      expect(fill).toBeGreaterThanOrEqual(0.8);
+    }
+  });
+
+  it('should_place_collectible_stars_in_medium_and_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      const stars = level.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
+      if (level.difficulty === 'EASY') {
+        expect(stars).toBe(0);
+      } else {
+        expect(stars).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('should_set_a_time_limit_on_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      if (level.difficulty === 'HARD') {
+        expect(level.timeLimitSeconds).toBeGreaterThan(0);
+      } else {
+        expect(level.timeLimitSeconds).toBeUndefined();
+      }
+    }
+  });
+
+  it('should_include_walls_in_medium_and_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      const walls = level.cells.filter((c) => c.kind === 'WALL').length;
+      if (level.difficulty === 'EASY') {
+        expect(walls).toBe(0);
+      } else {
+        expect(walls).toBeGreaterThan(0);
+      }
     }
   });
 

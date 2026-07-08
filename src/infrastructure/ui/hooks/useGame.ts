@@ -31,6 +31,11 @@ export function useGame(levelId: number) {
   const [lives, setLives] = useState<number>(0);
   const [moves, setMoves] = useState<number>(0);
   const [outcome, setOutcome] = useState<GameOutcome>({});
+  /** Countdown for timed levels; null when the level has no limit. */
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  /** Stars collected so far / total stars the level started with. */
+  const [collected, setCollected] = useState<number>(0);
+  const [totalCollectibles, setTotalCollectibles] = useState<number>(0);
   const [, bumpRenderToken] = useState<number>(0);
 
   const load = useCallback(async () => {
@@ -52,6 +57,9 @@ export function useGame(levelId: number) {
     startedAtRef.current = Date.now();
     setLives(session.lives.count);
     setMoves(0);
+    setRemainingSeconds(level.timeLimitSeconds ?? null);
+    setCollected(0);
+    setTotalCollectibles(level.board.cells().filter((c) => c.kind === 'COLLECTIBLE').length);
     setStatus(session.status);
     bumpRenderToken((n) => n + 1);
   }, [container, levelId]);
@@ -59,6 +67,27 @@ export function useGame(levelId: number) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Countdown for timed levels: ticks once per second while playing and ends
+  // the session in defeat when it reaches zero.
+  useEffect(() => {
+    const limit = levelRef.current?.timeLimitSeconds;
+    if (status !== GameStatus.Playing || !limit) {
+      return undefined;
+    }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startedAtRef.current) / 1000);
+      const remaining = Math.max(0, limit - elapsed);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        sessionRef.current?.timeUp();
+        setStatus(GameStatus.Defeat);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   const onTapCell = useCallback(
     async (position: Position) => {
@@ -70,6 +99,7 @@ export function useGame(levelId: number) {
         const result = await container.tapCell.execute({ session, position });
         setLives(result.livesRemaining);
         setMoves(session.moves);
+        setCollected(session.collectiblesCollected);
         setStatus(result.status);
         bumpRenderToken((n) => n + 1);
 
@@ -80,6 +110,7 @@ export function useGame(levelId: number) {
             moves: session.moves,
             elapsedMs,
             difficulty: levelRef.current!.difficulty,
+            collectibles: session.collectiblesCollected,
           });
           setOutcome({ score: recorded.score.points, isNewBest: recorded.isNewBest });
         }
@@ -95,6 +126,9 @@ export function useGame(levelId: number) {
     lives,
     moves,
     outcome,
+    remainingSeconds,
+    collected,
+    totalCollectibles,
     board: boardRef.current,
     holes: holesRef.current,
     level: levelRef.current,

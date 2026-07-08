@@ -19,3 +19,4 @@ export const arrow = (
 export const empty = (): CellSpec => ({ kind: 'EMPTY' });
 export const wall = (): CellSpec => ({ kind: 'WALL' });
 export const exit = (): CellSpec => ({ kind: 'EXIT' });
+export const collectible = (): CellSpec => ({ kind: 'COLLECTIBLE' });

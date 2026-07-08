@@ -6,6 +6,8 @@ export interface ScoreInput {
   readonly moves: number;
   readonly elapsedMs: number;
   readonly difficulty: Difficulty;
+  /** Stars collected during the level (bonus points); defaults to 0. */
+  readonly collectibles?: number;
 }
 
 /**

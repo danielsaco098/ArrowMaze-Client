@@ -37,7 +37,7 @@ export class JsonLevelBuilder implements ILevelBuilder {
     this.placeCells(grid, data.cells, data.rows, data.cols);
 
     const board = new Board(grid);
-    return new Level(data.id, data.name, data.difficulty, board);
+    return new Level(data.id, data.name, data.difficulty, board, data.timeLimitSeconds);
   }
 
   private createEmptyGrid(rows: number, cols: number): Cell[][] {

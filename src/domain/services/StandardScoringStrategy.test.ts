@@ -24,6 +24,15 @@ describe('StandardScoringStrategy', () => {
     expect(score.points).toBe(890);
   });
 
+  it('should_add_a_bonus_per_collected_star', () => {
+    // Arrange: EASY base 1000, no penalties, 2 stars * 50 = +100
+    // Act
+    const score = strategy.score({ moves: 0, elapsedMs: 0, difficulty: 'EASY', collectibles: 2 });
+
+    // Assert
+    expect(score.points).toBe(1100);
+  });
+
   it('should_not_drop_below_the_minimum_score', () => {
     // Arrange: huge move/time penalty would go negative
     // Act
