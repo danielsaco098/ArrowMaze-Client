@@ -20,7 +20,7 @@ describe('AudioManager', () => {
     AudioManager.resetForTests();
   });
 
-  it('should_return_the_same_instance_every_time', () => {
+  it('should_return_the_same_instance_when_requested_repeatedly', () => {
     expect(AudioManager.getInstance()).toBe(AudioManager.getInstance());
   });
 
@@ -55,7 +55,7 @@ describe('AudioManager', () => {
     expect(engine.music).toBe('none');
   });
 
-  it('should_still_allow_stopping_music_while_muted', () => {
+  it('should_allow_stopping_music_when_muted', () => {
     // Arrange
     const engine = new RecordingEngine();
     const manager = AudioManager.getInstance();

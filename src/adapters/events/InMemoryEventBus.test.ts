@@ -29,7 +29,7 @@ describe('InMemoryEventBus', () => {
     expect(b.received).toEqual([event]);
   });
 
-  it('should_stop_notifying_an_observer_after_it_unsubscribes', () => {
+  it('should_stop_notifying_when_an_observer_unsubscribes', () => {
     // Arrange
     const bus = new InMemoryEventBus();
     const observer = new RecordingObserver();

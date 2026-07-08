@@ -11,7 +11,7 @@ class SlowUseCase implements UseCase<number, number> {
 }
 
 describe('MetricsUseCaseDecorator', () => {
-  it('should_return_the_inner_result', async () => {
+  it('should_return_the_inner_result_when_the_use_case_succeeds', async () => {
     // Arrange
     const decorator = new MetricsUseCaseDecorator(
       new EchoUseCase(),

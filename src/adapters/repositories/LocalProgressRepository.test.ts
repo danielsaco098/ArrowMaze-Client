@@ -17,7 +17,7 @@ describe('LocalProgressRepository', () => {
     expect(progress.completedCount()).toBe(0);
   });
 
-  it('should_persist_and_reload_the_same_progress', async () => {
+  it('should_reload_the_same_progress_when_it_was_persisted', async () => {
     // Arrange
     const repo = new LocalProgressRepository(new InMemoryKeyValueStorage());
     const progress = PlayerProgress.empty()

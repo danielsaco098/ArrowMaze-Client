@@ -29,13 +29,13 @@ function remainingAfterGreedySolve(board: Board): number {
 }
 
 describe('bundled levels', () => {
-  it('should_bundle_15_levels_with_unique_sequential_ids', () => {
+  it('should_expose_15_unique_sequential_ids_when_levels_are_bundled', () => {
     // Assert
     expect(BUNDLED_LEVELS).toHaveLength(15);
     expect(BUNDLED_LEVELS.map((l) => l.id)).toEqual(Array.from({ length: 15 }, (_, i) => i + 1));
   });
 
-  it('should_group_difficulty_progressively_from_easy_to_hard', () => {
+  it('should_order_difficulties_progressively_when_levels_are_bundled', () => {
     // Assert
     const difficulties = BUNDLED_LEVELS.map((l) => l.difficulty);
     expect(difficulties.slice(0, 5)).toEqual(Array(5).fill('EASY'));
@@ -73,7 +73,7 @@ describe('bundled levels', () => {
     },
   );
 
-  it('should_densely_fill_every_board', () => {
+  it('should_fill_every_board_densely_when_levels_are_generated', () => {
     for (const level of BUNDLED_LEVELS) {
       const occupied = level.cells.filter(
         (c) => c.kind === 'ARROW' || c.kind === 'WALL' || c.kind === 'COLLECTIBLE',
@@ -83,7 +83,7 @@ describe('bundled levels', () => {
     }
   });
 
-  it('should_place_collectible_stars_in_medium_and_hard_levels_only', () => {
+  it('should_place_stars_only_when_difficulty_is_medium_or_hard', () => {
     for (const level of BUNDLED_LEVELS) {
       const stars = level.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
       if (level.difficulty === 'EASY') {
@@ -94,7 +94,7 @@ describe('bundled levels', () => {
     }
   });
 
-  it('should_set_a_time_limit_on_hard_levels_only', () => {
+  it('should_set_a_time_limit_only_when_difficulty_is_hard', () => {
     for (const level of BUNDLED_LEVELS) {
       if (level.difficulty === 'HARD') {
         expect(level.timeLimitSeconds).toBeGreaterThan(0);
@@ -104,7 +104,7 @@ describe('bundled levels', () => {
     }
   });
 
-  it('should_include_walls_in_medium_and_hard_levels_only', () => {
+  it('should_include_walls_only_when_difficulty_is_medium_or_hard', () => {
     for (const level of BUNDLED_LEVELS) {
       const walls = level.cells.filter((c) => c.kind === 'WALL').length;
       if (level.difficulty === 'EASY') {
@@ -115,7 +115,7 @@ describe('bundled levels', () => {
     }
   });
 
-  it('should_use_multi_cell_arrows_in_medium_and_hard_levels', () => {
+  it('should_use_multi_cell_arrows_when_difficulty_is_medium_or_hard', () => {
     for (const level of BUNDLED_LEVELS.filter((l) => l.difficulty !== 'EASY')) {
       const sizeByArrow = new Map<number, number>();
       for (const cell of level.cells) {

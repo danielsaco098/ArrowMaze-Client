@@ -49,7 +49,7 @@ describe('LoadLevelUseCase', () => {
     await expect(useCase.execute({ levelId: 99 })).rejects.toThrow(LevelNotFoundError);
   });
 
-  it('should_build_a_session_whose_board_is_independent_of_other_loads', async () => {
+  it('should_build_an_independent_board_when_the_same_level_is_loaded_twice', async () => {
     // Arrange: the same id loaded twice should yield independent sessions
     const repo = new FakeLevelRepository(
       new Map([

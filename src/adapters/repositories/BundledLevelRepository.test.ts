@@ -28,7 +28,7 @@ describe('BundledLevelRepository', () => {
     await expect(repo.getById(99)).rejects.toThrow(LevelNotFoundError);
   });
 
-  it('should_return_all_levels_sorted_by_id', async () => {
+  it('should_return_levels_sorted_by_id_when_listing_all', async () => {
     // Arrange: definitions provided out of order
     const repo = new BundledLevelRepository([data[1], data[0]]);
 
@@ -39,7 +39,7 @@ describe('BundledLevelRepository', () => {
     expect(levels.map((l) => l.id)).toEqual([1, 2]);
   });
 
-  it('should_return_independent_board_instances_on_repeated_loads', async () => {
+  it('should_return_independent_boards_when_loaded_repeatedly', async () => {
     // Arrange
     const repo = new BundledLevelRepository(data);
 

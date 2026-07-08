@@ -11,7 +11,7 @@ function buildSubject() {
 }
 
 describe('RecordLevelResultUseCase', () => {
-  it('should_compute_a_score_and_persist_the_completion', async () => {
+  it('should_compute_and_persist_the_score_when_a_level_is_completed', async () => {
     // Arrange
     const { repository, useCase } = buildSubject();
 
@@ -48,7 +48,7 @@ describe('RecordLevelResultUseCase', () => {
 });
 
 describe('GetProgressUseCase', () => {
-  it('should_return_the_persisted_progress', async () => {
+  it('should_return_the_progress_when_it_was_persisted', async () => {
     // Arrange
     const repository = new LocalProgressRepository(new InMemoryKeyValueStorage());
     const record = new RecordLevelResultUseCase(new StandardScoringStrategy(), repository);

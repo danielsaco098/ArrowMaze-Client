@@ -2,7 +2,7 @@ import { GetOverallLeaderboardUseCase } from './GetOverallLeaderboardUseCase';
 import type { ILeaderboardApi } from '../ports/ILeaderboardApi';
 
 describe('GetOverallLeaderboardUseCase', () => {
-  it('should_fetch_the_overall_ranking', async () => {
+  it('should_fetch_the_overall_ranking_when_executed', async () => {
     // Arrange
     const entries = [{ username: 'ana', totalScore: 4200, levelsPlayed: 5 }];
     const api: jest.Mocked<ILeaderboardApi> = {

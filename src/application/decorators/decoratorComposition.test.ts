@@ -13,7 +13,7 @@ import type { TapResult } from '../../domain/entities/GameStatus';
 import { arrow, buildBoard, empty } from '../../test-support/buildBoard';
 
 describe('decorator composition over a real use case', () => {
-  it('should_stack_logging_metrics_and_exception_handling_transparently', async () => {
+  it('should_compose_transparently_when_aspects_are_stacked', async () => {
     // Arrange: wrap the real TapCellUseCase with all three cross-cutting aspects.
     const logger = new RecordingLogger();
     const metrics = new RecordingMetrics();
