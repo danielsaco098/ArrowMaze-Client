@@ -31,6 +31,8 @@ export function useGame(levelId: number) {
   const [lives, setLives] = useState<number>(0);
   const [moves, setMoves] = useState<number>(0);
   const [outcome, setOutcome] = useState<GameOutcome>({});
+  /** Countdown for timed levels; null when the level has no limit. */
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [, bumpRenderToken] = useState<number>(0);
 
   const load = useCallback(async () => {
@@ -52,6 +54,7 @@ export function useGame(levelId: number) {
     startedAtRef.current = Date.now();
     setLives(session.lives.count);
     setMoves(0);
+    setRemainingSeconds(level.timeLimitSeconds ?? null);
     setStatus(session.status);
     bumpRenderToken((n) => n + 1);
   }, [container, levelId]);
@@ -59,6 +62,27 @@ export function useGame(levelId: number) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Countdown for timed levels: ticks once per second while playing and ends
+  // the session in defeat when it reaches zero.
+  useEffect(() => {
+    const limit = levelRef.current?.timeLimitSeconds;
+    if (status !== GameStatus.Playing || !limit) {
+      return undefined;
+    }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startedAtRef.current) / 1000);
+      const remaining = Math.max(0, limit - elapsed);
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        sessionRef.current?.timeUp();
+        setStatus(GameStatus.Defeat);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   const onTapCell = useCallback(
     async (position: Position) => {
@@ -95,6 +119,7 @@ export function useGame(levelId: number) {
     lives,
     moves,
     outcome,
+    remainingSeconds,
     board: boardRef.current,
     holes: holesRef.current,
     level: levelRef.current,

@@ -20,6 +20,8 @@ export interface LevelData {
   readonly rows: number;
   readonly cols: number;
   readonly cells: ReadonlyArray<CellData>;
+  /** Seconds allowed to clear the board; omitted = untimed. */
+  readonly timeLimitSeconds?: number;
 }
 
 /**

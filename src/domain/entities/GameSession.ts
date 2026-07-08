@@ -49,6 +49,16 @@ export class GameSession {
   }
 
   /**
+   * Ends the session in defeat because the level's time limit ran out.
+   * A no-op when the game is already over (the countdown may race the last tap).
+   */
+  timeUp(): void {
+    if (this.currentStatus === GameStatus.Playing) {
+      this.currentStatus = GameStatus.Defeat;
+    }
+  }
+
+  /**
    * Attempts to send the arrow at `position` off the board.
    * @throws GameAlreadyOverError if the session is no longer playing.
    * @throws NotAnArrowError if the tapped cell is not an arrow.

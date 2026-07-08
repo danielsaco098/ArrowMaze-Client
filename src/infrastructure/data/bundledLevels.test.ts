@@ -81,6 +81,16 @@ describe('bundled levels', () => {
     }
   });
 
+  it('should_set_a_time_limit_on_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      if (level.difficulty === 'HARD') {
+        expect(level.timeLimitSeconds).toBeGreaterThan(0);
+      } else {
+        expect(level.timeLimitSeconds).toBeUndefined();
+      }
+    }
+  });
+
   it('should_include_walls_in_medium_and_hard_levels_only', () => {
     for (const level of BUNDLED_LEVELS) {
       const walls = level.cells.filter((c) => c.kind === 'WALL').length;

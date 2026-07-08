@@ -45,6 +45,8 @@ export interface LevelConfig {
   maxLength: number;
   /** Impassable wall cells scattered before the arrows are placed (default 0). */
   walls?: number;
+  /** Countdown for advanced levels; omitted = untimed. */
+  timeLimitSeconds?: number;
 }
 
 /** Marks a wall in the working grid (arrows use positive ids). */
@@ -160,5 +162,6 @@ export function generateLevel(config: LevelConfig): LevelData {
     rows,
     cols,
     cells,
+    timeLimitSeconds: config.timeLimitSeconds,
   };
 }

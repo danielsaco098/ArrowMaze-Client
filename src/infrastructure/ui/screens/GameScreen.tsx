@@ -16,7 +16,8 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   const { navigate } = useNavigation();
   const { t } = useTranslation();
   const container = useContainer();
-  const { status, lives, moves, outcome, board, holes, level, onTapCell, retry } = useGame(levelId);
+  const { status, lives, moves, outcome, remainingSeconds, board, holes, level, onTapCell, retry } =
+    useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
 
@@ -41,6 +42,14 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
           <Text testID="lives" style={styles.lives}>
             {hearts}
           </Text>
+          {remainingSeconds !== null && (
+            <Text
+              testID="timer"
+              style={[styles.timer, remainingSeconds <= 10 && styles.timerLow]}
+            >
+              ⏱ {formatTime(remainingSeconds)}
+            </Text>
+          )}
           <Text testID="moves" style={styles.moves}>
             {t('game.moves', { count: moves })}
           </Text>
@@ -94,6 +103,12 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   );
 }
 
+function formatTime(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
 function Overlay({
   title,
   tone,
@@ -121,6 +136,8 @@ const styles = StyleSheet.create({
   level: { color: theme.colors.text, fontSize: 22, fontWeight: '800' },
   stats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing(1) },
   lives: { color: theme.colors.danger, fontSize: 20, letterSpacing: 2 },
+  timer: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
+  timerLow: { color: theme.colors.danger },
   moves: { color: theme.colors.muted, fontSize: 16 },
   boardArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loading: { color: theme.colors.muted },

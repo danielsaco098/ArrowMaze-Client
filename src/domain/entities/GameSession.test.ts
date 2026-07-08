@@ -42,6 +42,32 @@ describe('GameSession', () => {
     expect(result.arrowsRemaining).toBe(2); // nothing was removed
   });
 
+  it('should_end_in_defeat_when_the_time_limit_runs_out', () => {
+    // Arrange
+    const board = buildBoard([[arrow('RIGHT'), empty()]]);
+    const session = new GameSession(board);
+
+    // Act
+    session.timeUp();
+
+    // Assert
+    expect(session.status).toBe(GameStatus.Defeat);
+  });
+
+  it('should_not_override_a_finished_game_when_time_runs_out', () => {
+    // Arrange: winning first...
+    const board = buildBoard([[arrow('RIGHT'), empty()]]);
+    const session = new GameSession(board);
+    session.tap(new Position(0, 0));
+    expect(session.status).toBe(GameStatus.Victory);
+
+    // Act: ...then the countdown fires late
+    session.timeUp();
+
+    // Assert: victory stands
+    expect(session.status).toBe(GameStatus.Victory);
+  });
+
   it('should_return_victory_state_when_the_board_is_cleared', () => {
     // Arrange: a single arrow that can escape
     const board = buildBoard([[arrow('RIGHT'), empty()]]);

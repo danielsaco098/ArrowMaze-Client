@@ -19,11 +19,11 @@ const LEVEL_CONFIGS: LevelConfig[] = [
   { id: 8, name: 'Packed Grid', difficulty: 'MEDIUM', rows: 6, cols: 6, seed: 2081, maxLength: 3, walls: 2 },
   { id: 9, name: 'Tight Fit', difficulty: 'MEDIUM', rows: 6, cols: 6, seed: 2099, maxLength: 3, walls: 2 },
   { id: 10, name: 'Big Board', difficulty: 'MEDIUM', rows: 6, cols: 7, seed: 2111, maxLength: 3, walls: 2 },
-  { id: 11, name: 'Long Hall', difficulty: 'HARD', rows: 7, cols: 6, seed: 3137, maxLength: 3, walls: 3 },
-  { id: 12, name: 'Gridlock', difficulty: 'HARD', rows: 7, cols: 7, seed: 3163, maxLength: 3, walls: 3 },
-  { id: 13, name: 'Tangled', difficulty: 'HARD', rows: 7, cols: 7, seed: 3169, maxLength: 3, walls: 3 },
-  { id: 14, name: 'Sprawl', difficulty: 'HARD', rows: 7, cols: 8, seed: 3181, maxLength: 3, walls: 4 },
-  { id: 15, name: 'The Great Escape', difficulty: 'HARD', rows: 8, cols: 8, seed: 3191, maxLength: 3, walls: 4 },
+  { id: 11, name: 'Long Hall', difficulty: 'HARD', rows: 7, cols: 6, seed: 3137, maxLength: 3, walls: 3, timeLimitSeconds: 120 },
+  { id: 12, name: 'Gridlock', difficulty: 'HARD', rows: 7, cols: 7, seed: 3163, maxLength: 3, walls: 3, timeLimitSeconds: 110 },
+  { id: 13, name: 'Tangled', difficulty: 'HARD', rows: 7, cols: 7, seed: 3169, maxLength: 3, walls: 3, timeLimitSeconds: 100 },
+  { id: 14, name: 'Sprawl', difficulty: 'HARD', rows: 7, cols: 8, seed: 3181, maxLength: 3, walls: 4, timeLimitSeconds: 90 },
+  { id: 15, name: 'The Great Escape', difficulty: 'HARD', rows: 8, cols: 8, seed: 3191, maxLength: 3, walls: 4, timeLimitSeconds: 80 },
 ];
 
 export const BUNDLED_LEVELS: ReadonlyArray<LevelData> = LEVEL_CONFIGS.map(generateLevel);
