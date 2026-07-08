@@ -5,6 +5,7 @@ import { Lives } from '../value-objects/Lives';
 import { Position } from '../value-objects/Position';
 import { PathTraversalService } from '../services/PathTraversalService';
 import { GameAlreadyOverError, NotAnArrowError } from '../errors';
+import { Direction } from '../value-objects/Direction';
 
 /**
  * Aggregate root for one level play. Owns the board, the player's lives and the
@@ -21,6 +22,7 @@ export class GameSession {
   private currentLives: Lives;
   private currentStatus: GameStatus;
   private moveCount: number;
+  private collectedCount: number;
 
   constructor(
     private readonly board: Board,
@@ -29,6 +31,7 @@ export class GameSession {
   ) {
     this.currentLives = lives;
     this.moveCount = 0;
+    this.collectedCount = 0;
     this.currentStatus = board.isCleared() ? GameStatus.Victory : GameStatus.Playing;
   }
 
@@ -46,6 +49,11 @@ export class GameSession {
 
   get arrowsRemaining(): number {
     return this.board.arrowCount();
+  }
+
+  /** Stars swept up by escaping arrows so far (bonus points at scoring time). */
+  get collectiblesCollected(): number {
+    return this.collectedCount;
   }
 
   /**
@@ -73,10 +81,13 @@ export class GameSession {
 
     this.moveCount += 1;
 
-    const arrowId = (this.board.cellAt(position) as ArrowCell).arrowId;
+    const arrow = this.board.cellAt(position) as ArrowCell;
+    const arrowId = arrow.arrowId;
     let outcome: TapOutcome;
     if (this.traversal.canEscape(this.board, position)) {
+      const head = this.board.headOfArrow(arrowId);
       this.board.clearArrow(arrowId);
+      this.collectAlongLane(head, arrow.direction);
       outcome = TapOutcome.Escaped;
       if (this.board.isCleared()) {
         this.currentStatus = GameStatus.Victory;
@@ -95,5 +106,23 @@ export class GameSession {
       livesRemaining: this.currentLives.count,
       arrowsRemaining: this.board.arrowCount(),
     };
+  }
+
+  /**
+   * An escaping arrow sweeps every cell from its head to the board edge:
+   * any collectible star on that lane is picked up (the cell becomes empty).
+   */
+  private collectAlongLane(head: Position, direction: Direction): void {
+    let row = head.row + direction.rowDelta;
+    let col = head.col + direction.colDelta;
+    while (row >= 0 && row < this.board.rows && col >= 0 && col < this.board.cols) {
+      const cell = this.board.cellAt(new Position(row, col));
+      if (cell.kind === 'COLLECTIBLE') {
+        this.board.clearCell(cell.position);
+        this.collectedCount += 1;
+      }
+      row += direction.rowDelta;
+      col += direction.colDelta;
+    }
   }
 }

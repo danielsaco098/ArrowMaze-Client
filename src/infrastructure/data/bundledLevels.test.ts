@@ -73,11 +73,24 @@ describe('bundled levels', () => {
     },
   );
 
-  it('should_densely_fill_every_board_with_arrows_and_walls', () => {
+  it('should_densely_fill_every_board', () => {
     for (const level of BUNDLED_LEVELS) {
-      const occupied = level.cells.filter((c) => c.kind === 'ARROW' || c.kind === 'WALL').length;
+      const occupied = level.cells.filter(
+        (c) => c.kind === 'ARROW' || c.kind === 'WALL' || c.kind === 'COLLECTIBLE',
+      ).length;
       const fill = occupied / (level.rows * level.cols);
       expect(fill).toBeGreaterThanOrEqual(0.8);
+    }
+  });
+
+  it('should_place_collectible_stars_in_medium_and_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      const stars = level.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
+      if (level.difficulty === 'EASY') {
+        expect(stars).toBe(0);
+      } else {
+        expect(stars).toBeGreaterThan(0);
+      }
     }
   });
 

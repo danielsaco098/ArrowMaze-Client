@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import type { Cell } from '../../../domain/entities/Cell';
 import { ArrowCell } from '../../../domain/entities/ArrowCell';
 import type { Position } from '../../../domain/value-objects/Position';
@@ -54,6 +54,10 @@ export function CellView({ cell, size, isHead, isTail, isHole, onPress }: Props)
           isTail={isTail}
           size={size}
         />
+      ) : cell.kind === 'COLLECTIBLE' ? (
+        <Text accessibilityLabel="collectible" style={[styles.star, { fontSize: size * 0.5 }]}>
+          ★
+        </Text>
       ) : null}
     </Pressable>
   );
@@ -68,5 +72,8 @@ const styles = StyleSheet.create({
   wall: {
     borderRadius: 6,
     transform: [{ scale: 0.88 }],
+  },
+  star: {
+    color: theme.colors.exit,
   },
 });

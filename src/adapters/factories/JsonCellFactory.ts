@@ -3,6 +3,7 @@ import { ArrowCell } from '../../domain/entities/ArrowCell';
 import { WallCell } from '../../domain/entities/WallCell';
 import { EmptyCell } from '../../domain/entities/EmptyCell';
 import { ExitCell } from '../../domain/entities/ExitCell';
+import { CollectibleCell } from '../../domain/entities/CollectibleCell';
 import { Direction } from '../../domain/value-objects/Direction';
 import type { Position } from '../../domain/value-objects/Position';
 import type { CellSpec, ICellFactory } from '../../application/ports/ICellFactory';
@@ -61,6 +62,8 @@ export class JsonCellFactory implements ICellFactory {
         return new EmptyCell(position);
       case 'EXIT':
         return new ExitCell(position);
+      case 'COLLECTIBLE':
+        return new CollectibleCell(position);
       default:
         throw new MalformedCellSpecError(`Unknown cell kind: "${String((spec as CellSpec).kind)}".`);
     }

@@ -10,6 +10,8 @@ export interface RecordLevelResultInput {
   readonly moves: number;
   readonly elapsedMs: number;
   readonly difficulty: Difficulty;
+  /** Stars collected during the level (bonus points); defaults to 0. */
+  readonly collectibles?: number;
 }
 
 export interface RecordLevelResultOutput {
@@ -36,6 +38,7 @@ export class RecordLevelResultUseCase
       moves: input.moves,
       elapsedMs: input.elapsedMs,
       difficulty: input.difficulty,
+      collectibles: input.collectibles,
     });
 
     const current = await this.progressRepository.load();

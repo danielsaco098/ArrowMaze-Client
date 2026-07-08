@@ -16,8 +16,20 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   const { navigate } = useNavigation();
   const { t } = useTranslation();
   const container = useContainer();
-  const { status, lives, moves, outcome, remainingSeconds, board, holes, level, onTapCell, retry } =
-    useGame(levelId);
+  const {
+    status,
+    lives,
+    moves,
+    outcome,
+    remainingSeconds,
+    collected,
+    totalCollectibles,
+    board,
+    holes,
+    level,
+    onTapCell,
+    retry,
+  } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
 
@@ -48,6 +60,11 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
               style={[styles.timer, remainingSeconds <= 10 && styles.timerLow]}
             >
               ⏱ {formatTime(remainingSeconds)}
+            </Text>
+          )}
+          {totalCollectibles > 0 && (
+            <Text testID="collectibles" style={styles.collectibles}>
+              ★ {collected}/{totalCollectibles}
             </Text>
           )}
           <Text testID="moves" style={styles.moves}>
@@ -138,6 +155,7 @@ const styles = StyleSheet.create({
   lives: { color: theme.colors.danger, fontSize: 20, letterSpacing: 2 },
   timer: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
   timerLow: { color: theme.colors.danger },
+  collectibles: { color: theme.colors.exit, fontSize: 16, fontWeight: '700' },
   moves: { color: theme.colors.muted, fontSize: 16 },
   boardArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loading: { color: theme.colors.muted },
