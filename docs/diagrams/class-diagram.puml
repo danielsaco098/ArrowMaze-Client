@@ -1,0 +1,113 @@
+@startuml class-diagram
+' Arrow Maze Client — Class diagram (architecture-significant classes)
+' Editable source for docs/diagrams/class-diagram.png.
+title Arrow Maze Client — Class Diagram
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "Layer 1 — Domain" #F5E6B3 {
+  abstract class Cell {
+    +position: Position
+    +kind: CellKind
+    +isPassable(): boolean
+  }
+  Cell <|-- ArrowCell
+  Cell <|-- WallCell
+  Cell <|-- EmptyCell
+  Cell <|-- ExitCell
+  Cell <|-- CollectibleCell
+
+  class Board {
+    +rows / cols
+    +cellAt(p) / replaceCell(c)
+    +headOfArrow(id) / clearArrow(id)
+    +arrowCount() / isCleared()
+  }
+  class GameSession {
+    +tap(position): TapResult
+    +timeUp()
+    +lives / moves / collectiblesCollected
+  }
+  class Level {
+    +id / name / difficulty
+    +board / timeLimitSeconds
+  }
+  class PathTraversalService {
+    +canEscape(board, position)
+  }
+  interface IScoringStrategy
+  class StandardScoringStrategy
+
+  Board o-- Cell : grid (Composite)
+  GameSession --> Board
+  GameSession --> PathTraversalService
+  Level --> Board
+  StandardScoringStrategy ..|> IScoringStrategy
+}
+
+package "Layer 2 — Application" #E8DDF0 {
+  interface "UseCase<I,O>" as UseCase
+  interface ILevelRepository
+  interface IProgressRepository
+  interface IEventPublisher
+  interface ISessionSource
+
+  class TapCellUseCase
+  class LoadLevelUseCase
+  class RecordLevelResultUseCase
+  class SyncProgressUseCase
+  class GetLeaderboardUseCase
+
+  abstract class UseCaseDecorator
+  class AuthenticationUseCaseDecorator
+  class LoggingUseCaseDecorator
+
+  TapCellUseCase ..|> UseCase
+  LoadLevelUseCase ..|> UseCase
+  RecordLevelResultUseCase ..|> UseCase
+  SyncProgressUseCase ..|> UseCase
+  GetLeaderboardUseCase ..|> UseCase
+  UseCaseDecorator ..|> UseCase
+  UseCaseDecorator <|-- AuthenticationUseCaseDecorator
+  UseCaseDecorator <|-- LoggingUseCaseDecorator
+  UseCaseDecorator o-- UseCase : wraps (Decorator)
+
+  LoadLevelUseCase --> ILevelRepository
+  RecordLevelResultUseCase --> IScoringStrategy
+  RecordLevelResultUseCase --> IProgressRepository
+  TapCellUseCase --> IEventPublisher
+  SyncProgressUseCase --> ISessionSource
+  AuthenticationUseCaseDecorator --> ISessionSource
+}
+
+package "Layer 3 — Interface Adapters" #CFE8DA {
+  class BundledLevelRepository
+  class LocalProgressRepository
+  class JsonCellFactory
+  class JsonLevelBuilder
+  class InMemoryEventBus
+  class SessionStore
+
+  BundledLevelRepository ..|> ILevelRepository
+  LocalProgressRepository ..|> IProgressRepository
+  InMemoryEventBus ..|> IEventPublisher
+  SessionStore ..|> ISessionSource
+  JsonLevelBuilder --> JsonCellFactory : Factory Method
+}
+
+package "Layer 4 — Frameworks & Drivers" #DDE6F0 {
+  class AsyncStorageKeyValue
+  class FetchHttpClient
+  class AudioManager <<Singleton>>
+  class "container.ts" as Container <<Composition Root>>
+
+  note as Layer3Note
+    The Composition Root instantiates every
+    adapter and wraps each use case with the
+    AOP decorators (incl. the auth aspect).
+  end note
+  Container .. Layer3Note
+}
+@enduml

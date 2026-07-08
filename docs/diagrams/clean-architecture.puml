@@ -1,0 +1,39 @@
+@startuml clean-architecture
+' Arrow Maze Client — Clean Architecture (concentric layers, dependency rule)
+' Editable source for docs/diagrams/clean-architecture.png (render with any
+' PlantUML tool). Nested boxes = concentric rings; arrows always point INWARD.
+title Arrow Maze Client — Clean Architecture
+
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+rectangle "Layer 4 — Frameworks & Drivers\n(src/infrastructure)" #DDE6F0 {
+  rectangle "Layer 3 — Interface Adapters\n(src/adapters)" #CFE8DA {
+    rectangle "Layer 2 — Application / Use Cases\n(src/application)" #E8DDF0 {
+      rectangle "Layer 1 — Domain\n(src/domain)" #F5E6B3 {
+        card "Board · Cell (Arrow/Wall/Empty/Exit/Collectible)\nGameSession · Level · PlayerProgress\nPosition · Direction · Score · Lives\nPathTraversalService · StandardScoringStrategy\nPlayerMoved · LevelCompleted · GameOver" as DOMAIN
+      }
+      card "Use cases: TapCell · LoadLevel · RecordLevelResult\nGetProgress · SyncProgress · GetLeaderboard\nGetOverallLeaderboard" as USECASES
+      card "Ports: ILevelRepository · IProgressRepository\nIEventPublisher · ICellFactory · ILevelBuilder\nIKeyValueStorage · IHttpClient · ISessionSource\nILogger · IClock · IMetricsRecorder · IAudioService" as PORTS
+      card "AOP decorators: Logging · Metrics\nExceptionHandling · Authentication" as ASPECTS
+    }
+    card "BundledLevelRepository · RestLevelRepository\nLocalProgressRepository · JsonCellFactory\nJsonLevelBuilder · ProgressMapper · SessionStore\nInMemoryEventBus · AudioObserver\nRestAuthApi · RestLeaderboardApi · RestProgressApi" as ADAPTERS
+  }
+  card "React Native / Expo UI (screens, components,\nuseGame hook, navigation, i18n)\nAsyncStorageKeyValue · FetchHttpClient\nAudioManager · observability\nComposition Root (config/container.ts)" as INFRA
+}
+
+' Dependency rule: arrows always point INWARD
+INFRA -[#0050B3]-> ADAPTERS : wires (DI)
+ADAPTERS -[#0050B3]-> PORTS : implements /\ndepends on
+USECASES -[#0050B3]-> PORTS : depends on
+USECASES -[#0050B3]-> DOMAIN : orchestrates
+ASPECTS -[#0050B3]-> USECASES : wrap (Decorator)
+
+legend right
+  Inner layers never import outer ones.
+  Layer 1 is pure TypeScript (zero external imports).
+  Layer 2 depends only on its own ports + the domain.
+  Concrete implementations are injected at the
+  Composition Root (Layer 4).
+endlegend
+@enduml
