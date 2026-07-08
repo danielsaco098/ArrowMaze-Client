@@ -24,7 +24,7 @@ function renderLeaderboard(container: AppContainer, levelId = 1) {
 }
 
 describe('LeaderboardScreen', () => {
-  it('should_list_the_entries_returned_by_the_use_case', async () => {
+  it('should_list_the_entries_when_the_use_case_returns_results', async () => {
     // Arrange
     const container = makeFakeContainer();
     (container.getLeaderboard.execute as jest.Mock).mockResolvedValue([

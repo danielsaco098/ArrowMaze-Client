@@ -12,7 +12,7 @@ class SlowUseCase implements UseCase<number, number> {
 }
 
 describe('LoggingUseCaseDecorator', () => {
-  it('should_delegate_to_inner_and_return_its_result', async () => {
+  it('should_delegate_and_return_the_result_when_the_inner_use_case_succeeds', async () => {
     // Arrange
     const decorator = new LoggingUseCaseDecorator(
       new EchoUseCase(),

@@ -30,7 +30,7 @@ function renderHome(extra?: React.ReactNode) {
 }
 
 describe('HomeScreen', () => {
-  it('should_render_the_title_and_play_button', async () => {
+  it('should_render_the_title_and_play_button_when_home_opens', async () => {
     const { getByText, getByTestId } = await renderHome();
 
     expect(getByText('Arrow Maze')).toBeTruthy();

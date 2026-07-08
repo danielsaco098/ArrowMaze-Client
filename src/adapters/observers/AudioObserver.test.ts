@@ -33,7 +33,7 @@ describe('AudioObserver', () => {
     expect(engine.effects).toEqual(['VICTORY']);
   });
 
-  it('should_play_the_defeat_sound_on_game_over', () => {
+  it('should_play_the_defeat_sound_when_the_game_is_over', () => {
     const engine = new RecordingEngine();
     new AudioObserver(engine).notify(new GameOverEvent(7));
     expect(engine.effects).toEqual(['DEFEAT']);

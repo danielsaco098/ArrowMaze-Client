@@ -23,7 +23,7 @@ describe('JsonLevelBuilder', () => {
     ],
   };
 
-  it('should_build_a_level_with_its_metadata_and_dimensions', () => {
+  it('should_build_a_level_with_its_metadata_when_given_valid_level_data', () => {
     // Act
     const level = builder.build(sampleData);
 
@@ -35,7 +35,7 @@ describe('JsonLevelBuilder', () => {
     expect(level.board.cols).toBe(3);
   });
 
-  it('should_place_each_defined_cell_at_its_position', () => {
+  it('should_place_each_cell_at_its_position_when_building_the_board', () => {
     // Act
     const board = builder.build(sampleData).board;
 
@@ -47,7 +47,7 @@ describe('JsonLevelBuilder', () => {
     expect(board.cellAt(new Position(0, 2))).toBeInstanceOf(ExitCell);
   });
 
-  it('should_default_unlisted_positions_to_empty_cells', () => {
+  it('should_default_to_empty_cells_when_positions_are_unlisted', () => {
     // Act
     const board = builder.build(sampleData).board;
 
@@ -56,7 +56,7 @@ describe('JsonLevelBuilder', () => {
     expect(board.cellAt(new Position(1, 0))).toBeInstanceOf(EmptyCell);
   });
 
-  it('should_count_only_the_defined_arrows_on_the_built_board', () => {
+  it('should_count_only_arrows_when_the_board_mixes_cell_kinds', () => {
     // Act / Assert
     expect(builder.build(sampleData).board.arrowCount()).toBe(1);
   });

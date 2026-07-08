@@ -4,7 +4,7 @@ import { RestProgressApi } from './RestProgressApi';
 import { FakeHttpClient } from '../../test-support/FakeHttpClient';
 
 describe('RestAuthApi', () => {
-  it('should_post_credentials_to_register', async () => {
+  it('should_post_the_credentials_when_registering', async () => {
     const http = new FakeHttpClient(() => ({ accessToken: 't', user: { id: '1', username: 'a', role: 'user' } }));
     const api = new RestAuthApi(http);
 
@@ -18,7 +18,7 @@ describe('RestAuthApi', () => {
     expect(session.accessToken).toBe('t');
   });
 
-  it('should_post_credentials_to_login', async () => {
+  it('should_post_the_credentials_when_logging_in', async () => {
     const http = new FakeHttpClient(() => ({ accessToken: 't', user: { id: '1', username: 'a', role: 'user' } }));
     const api = new RestAuthApi(http);
 
@@ -29,7 +29,7 @@ describe('RestAuthApi', () => {
 });
 
 describe('RestLeaderboardApi', () => {
-  it('should_request_the_top_entries_for_a_level_with_a_limit', async () => {
+  it('should_send_the_limit_when_requesting_a_level_top', async () => {
     const http = new FakeHttpClient(() => [{ levelId: 1, username: 'a', score: 900, achievedAt: 'x' }]);
     const api = new RestLeaderboardApi(http);
 
@@ -39,7 +39,7 @@ describe('RestLeaderboardApi', () => {
     expect(top[0].score).toBe(900);
   });
 
-  it('should_request_the_overall_ranking', async () => {
+  it('should_call_the_overall_endpoint_when_requesting_the_ranking', async () => {
     const http = new FakeHttpClient(() => [{ username: 'a', totalScore: 4200, levelsPlayed: 5 }]);
     const api = new RestLeaderboardApi(http);
 
@@ -51,7 +51,7 @@ describe('RestLeaderboardApi', () => {
 });
 
 describe('RestProgressApi', () => {
-  it('should_post_results_with_the_bearer_token_on_sync', async () => {
+  it('should_send_the_bearer_token_when_syncing_results', async () => {
     const http = new FakeHttpClient(() => [{ levelId: 1, bestScore: 880 }]);
     const api = new RestProgressApi(http);
 
@@ -66,7 +66,7 @@ describe('RestProgressApi', () => {
     expect(progress[0].bestScore).toBe(880);
   });
 
-  it('should_get_progress_with_the_bearer_token', async () => {
+  it('should_send_the_bearer_token_when_getting_progress', async () => {
     const http = new FakeHttpClient(() => []);
     const api = new RestProgressApi(http);
 

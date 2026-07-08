@@ -21,7 +21,7 @@ describe('JsonCellFactory', () => {
     expect((cell as ArrowCell).direction).toBe(Direction.LEFT);
   });
 
-  it('should_build_the_matching_cell_type_for_wall_empty_and_exit', () => {
+  it('should_build_the_matching_cell_type_when_spec_is_wall_empty_or_exit', () => {
     expect(factory.create({ kind: 'WALL' }, at)).toBeInstanceOf(WallCell);
     expect(factory.create({ kind: 'EMPTY' }, at)).toBeInstanceOf(EmptyCell);
     expect(factory.create({ kind: 'EXIT' }, at)).toBeInstanceOf(ExitCell);

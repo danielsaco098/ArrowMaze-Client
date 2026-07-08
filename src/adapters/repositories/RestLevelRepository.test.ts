@@ -16,7 +16,7 @@ const sampleLevel: LevelData = {
 };
 
 describe('RestLevelRepository', () => {
-  it('should_fetch_and_build_a_level_by_id', async () => {
+  it('should_fetch_and_build_the_level_when_requested_by_id', async () => {
     // Arrange
     const http = new FakeHttpClient(() => sampleLevel);
     const repo = new RestLevelRepository(http);
@@ -41,7 +41,7 @@ describe('RestLevelRepository', () => {
     await expect(repo.getById(99)).rejects.toThrow(LevelNotFoundError);
   });
 
-  it('should_fetch_and_build_all_levels', async () => {
+  it('should_fetch_and_build_every_level_when_listing_all', async () => {
     // Arrange
     const http = new FakeHttpClient(() => [sampleLevel, { ...sampleLevel, id: 2, name: 'Second' }]);
     const repo = new RestLevelRepository(http);

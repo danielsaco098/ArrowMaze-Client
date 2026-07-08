@@ -13,7 +13,7 @@ class FakeClock implements IClock {
 }
 
 describe('CachingUseCaseDecorator', () => {
-  it('should_serve_repeated_calls_from_cache_within_the_ttl', async () => {
+  it('should_serve_from_cache_when_called_again_within_the_ttl', async () => {
     // Arrange
     const inner: UseCase<{ levelId: number }, string> = {
       execute: jest.fn().mockResolvedValue('entries'),
@@ -31,7 +31,7 @@ describe('CachingUseCaseDecorator', () => {
     expect(inner.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('should_refetch_after_the_ttl_expires', async () => {
+  it('should_refetch_when_the_ttl_has_expired', async () => {
     // Arrange
     const inner: UseCase<{ levelId: number }, string> = {
       execute: jest.fn().mockResolvedValue('entries'),
@@ -48,7 +48,7 @@ describe('CachingUseCaseDecorator', () => {
     expect(inner.execute).toHaveBeenCalledTimes(2);
   });
 
-  it('should_cache_each_distinct_input_separately', async () => {
+  it('should_cache_separately_when_inputs_differ', async () => {
     // Arrange
     const inner: UseCase<{ levelId: number }, string> = {
       execute: jest.fn().mockImplementation(async ({ levelId }) => `entries-${levelId}`),

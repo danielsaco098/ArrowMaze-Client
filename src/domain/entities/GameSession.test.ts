@@ -42,7 +42,7 @@ describe('GameSession', () => {
     expect(result.arrowsRemaining).toBe(2); // nothing was removed
   });
 
-  it('should_collect_the_stars_swept_by_an_escaping_arrow', () => {
+  it('should_collect_the_stars_when_an_escaping_arrow_sweeps_them', () => {
     // Arrange: the arrow exits rightwards over a star
     const board = buildBoard([[arrow('RIGHT'), collectible(), empty()]]);
     const session = new GameSession(board);
@@ -150,7 +150,7 @@ describe('GameSession', () => {
     expect(session.status).toBe(GameStatus.Victory);
   });
 
-  it('should_defer_the_escape_decision_to_the_injected_traversal_service', () => {
+  it('should_defer_the_escape_decision_when_a_traversal_service_is_injected', () => {
     // Arrange: a stub that always reports "blocked", proving the rule depends on
     // the abstraction, not on a hard-coded path computation (Dependency Inversion).
     const board = buildBoard([[arrow('RIGHT'), empty()]]);

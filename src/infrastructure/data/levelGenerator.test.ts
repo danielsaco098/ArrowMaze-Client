@@ -33,24 +33,24 @@ const config: LevelConfig = {
 };
 
 describe('generateLevel', () => {
-  it('should_be_deterministic_for_the_same_seed', () => {
+  it('should_produce_identical_levels_when_generated_with_the_same_seed', () => {
     expect(generateLevel(config)).toEqual(generateLevel(config));
   });
 
-  it('should_produce_different_layouts_for_different_seeds', () => {
+  it('should_produce_different_layouts_when_seeds_differ', () => {
     const a = generateLevel(config);
     const b = generateLevel({ ...config, seed: 999 });
     expect(a.cells).not.toEqual(b.cells);
   });
 
-  it('should_always_produce_a_solvable_board_across_many_seeds', () => {
+  it('should_produce_a_solvable_board_when_generated_with_any_seed', () => {
     for (let seed = 1; seed <= 40; seed += 1) {
       const board = builder.build(generateLevel({ ...config, seed })).board;
       expect(isSolvable(board)).toBe(true);
     }
   });
 
-  it('should_place_the_requested_walls_and_stay_solvable', () => {
+  it('should_stay_solvable_when_walls_are_requested', () => {
     for (let seed = 1; seed <= 40; seed += 1) {
       // Arrange / Act
       const data = generateLevel({ ...config, seed, walls: 3 });

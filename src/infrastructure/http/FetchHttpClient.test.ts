@@ -12,7 +12,7 @@ function mockFetch(response: { ok: boolean; status: number; body?: unknown }) {
 }
 
 describe('FetchHttpClient', () => {
-  it('should_build_the_url_with_query_params_and_parse_json_on_get', async () => {
+  it('should_build_the_url_and_parse_json_when_getting_with_query_params', async () => {
     // Arrange
     const fetchMock = mockFetch({ ok: true, status: 200, body: [{ id: 1 }] });
     const client = new FetchHttpClient('http://api.test');
@@ -28,7 +28,7 @@ describe('FetchHttpClient', () => {
     expect(result).toEqual([{ id: 1 }]);
   });
 
-  it('should_send_a_json_body_and_bearer_token_on_post', async () => {
+  it('should_send_json_and_the_bearer_token_when_posting', async () => {
     // Arrange
     const fetchMock = mockFetch({ ok: true, status: 201, body: { accessToken: 't' } });
     const client = new FetchHttpClient('http://api.test');

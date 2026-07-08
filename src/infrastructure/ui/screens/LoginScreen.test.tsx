@@ -24,7 +24,7 @@ function renderLogin(container: AppContainer) {
 }
 
 describe('LoginScreen', () => {
-  it('should_render_the_login_form', async () => {
+  it('should_render_the_login_form_when_the_screen_opens', async () => {
     const container = makeFakeContainer();
     const { getByTestId } = await renderLogin(container);
 
@@ -33,7 +33,7 @@ describe('LoginScreen', () => {
     expect(getByTestId('login-button')).toBeTruthy();
   });
 
-  it('should_call_the_auth_api_with_the_entered_credentials_on_sign_in', async () => {
+  it('should_call_the_auth_api_when_the_user_signs_in', async () => {
     // Arrange
     const container = makeFakeContainer();
     (container.authApi.login as jest.Mock).mockResolvedValue({

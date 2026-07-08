@@ -2,7 +2,7 @@ import { GetLeaderboardUseCase } from './GetLeaderboardUseCase';
 import type { ILeaderboardApi } from '../ports/ILeaderboardApi';
 
 describe('GetLeaderboardUseCase', () => {
-  it('should_fetch_the_top_entries_for_the_level', async () => {
+  it('should_fetch_the_top_entries_when_given_a_level_id', async () => {
     // Arrange
     const entries = [{ levelId: 3, username: 'ana', score: 900, achievedAt: '2026-07-01' }];
     const api: jest.Mocked<ILeaderboardApi> = {

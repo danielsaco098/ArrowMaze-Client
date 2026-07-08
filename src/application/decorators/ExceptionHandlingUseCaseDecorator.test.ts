@@ -2,7 +2,7 @@ import { ExceptionHandlingUseCaseDecorator } from './ExceptionHandlingUseCaseDec
 import { EchoUseCase, FlakyUseCase } from './testDoubles';
 
 describe('ExceptionHandlingUseCaseDecorator', () => {
-  it('should_return_the_inner_result_when_no_error_occurs', async () => {
+  it('should_return_the_inner_result_when_the_use_case_succeeds_when_no_error_occurs', async () => {
     // Arrange
     const decorator = new ExceptionHandlingUseCaseDecorator(new EchoUseCase(), 'Echo');
 

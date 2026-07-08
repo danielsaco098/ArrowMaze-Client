@@ -5,7 +5,7 @@ import { arrow, buildBoard, empty } from '../../../test-support/buildBoard';
 import { Position } from '../../../domain/value-objects/Position';
 
 describe('BoardView', () => {
-  it('should_render_a_cell_for_every_board_position', async () => {
+  it('should_render_a_cell_for_every_position_when_the_board_is_drawn', async () => {
     // Arrange
     const board = buildBoard([
       [arrow('RIGHT'), empty()],

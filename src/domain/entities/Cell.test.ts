@@ -18,7 +18,7 @@ describe('Cell hierarchy', () => {
     expect(new ExitCell(at).isPassable()).toBe(true);
   });
 
-  it('should_identify_only_arrow_cells_as_tappable', () => {
+  it('should_identify_a_cell_as_tappable_only_when_it_is_an_arrow', () => {
     expect(new ArrowCell(at, Direction.UP, 1).isArrow()).toBe(true);
     expect(new WallCell(at).isArrow()).toBe(false);
     expect(new EmptyCell(at).isArrow()).toBe(false);

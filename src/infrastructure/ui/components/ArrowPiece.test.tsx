@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import { ArrowPiece } from './ArrowPiece';
 
 describe('ArrowPiece', () => {
-  it('should_label_the_head_slice_by_its_direction', async () => {
+  it('should_label_the_head_slice_when_rendering_each_direction', async () => {
     // Arrange / Act
     const { getByLabelText, rerender } = await render(
       <ArrowPiece direction="UP" color="#FFD166" isHead isTail size={40} />,
@@ -15,7 +15,7 @@ describe('ArrowPiece', () => {
     expect(getByLabelText('arrow-right')).toBeTruthy();
   });
 
-  it('should_label_body_slices_too_so_the_full_arrow_is_visible', async () => {
+  it('should_label_body_slices_when_the_arrow_spans_multiple_cells', async () => {
     // Arrange / Act
     const { getByLabelText } = await render(
       <ArrowPiece direction="LEFT" color="#FF6B6B" isHead={false} isTail={false} size={40} />,

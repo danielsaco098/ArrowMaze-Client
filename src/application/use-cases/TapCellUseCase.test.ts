@@ -72,7 +72,7 @@ describe('TapCellUseCase', () => {
     expect(publisher.events[1]).toBeInstanceOf(GameOverEvent);
   });
 
-  it('should_not_publish_terminal_events_while_the_game_continues', async () => {
+  it('should_not_publish_terminal_events_when_the_game_continues', async () => {
     // Arrange: two arrows, first escapes but one remains
     const session = new GameSession(
       buildBoard([

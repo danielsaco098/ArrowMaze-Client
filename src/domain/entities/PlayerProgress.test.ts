@@ -11,7 +11,7 @@ describe('PlayerProgress', () => {
     expect(progress.isCompleted(1)).toBe(false);
   });
 
-  it('should_record_a_completion_with_its_best_score', () => {
+  it('should_keep_the_best_score_when_a_completion_is_recorded', () => {
     // Arrange
     const progress = PlayerProgress.empty();
 
@@ -37,7 +37,7 @@ describe('PlayerProgress', () => {
     expect(higher.bestScore(1)).toBe(950);
   });
 
-  it('should_unlock_level_one_always_and_the_next_level_after_completion', () => {
+  it('should_unlock_the_next_level_when_the_previous_is_completed', () => {
     // Arrange
     const progress = PlayerProgress.empty();
 
@@ -53,7 +53,7 @@ describe('PlayerProgress', () => {
     expect(afterLevel1.isUnlocked(3)).toBe(false);
   });
 
-  it('should_list_completed_ids_sorted_ascending', () => {
+  it('should_list_completed_ids_in_ascending_order_when_progress_is_queried', () => {
     // Arrange
     const progress = PlayerProgress.empty()
       .recordCompletion(3, Score.of(100))
