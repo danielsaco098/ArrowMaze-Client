@@ -30,10 +30,16 @@ USECASES -[#0050B3]-> DOMAIN : orchestrates
 ASPECTS -[#0050B3]-> USECASES : wrap (Decorator)
 
 legend right
+  |= Color |= Layer |
+  |<#F5E6B3> | 1 — Domain (entities) |
+  |<#E8DDF0> | 2 — Application (use cases + ports) |
+  |<#CFE8DA> | 3 — Interface Adapters |
+  |<#DDE6F0> | 4 — Frameworks & Drivers |
   Inner layers never import outer ones.
   Layer 1 is pure TypeScript (zero external imports).
   Layer 2 depends only on its own ports + the domain.
-  Concrete implementations are injected at the
+  PORTS (interfaces) live in Layer 2; ADAPTERS
+  implement them from Layer 3, injected at the
   Composition Root (Layer 4).
 endlegend
 @enduml

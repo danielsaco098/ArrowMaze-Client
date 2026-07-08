@@ -63,8 +63,13 @@ outer layers know about inner layers, never the reverse. Frameworks, the databas
 | **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`/`RestLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `ProgressMapper`, `InMemoryEventBus`, `AudioObserver`, `SessionStore`, `RestAuthApi`/`RestLeaderboardApi`/`RestProgressApi` |
 | **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), `AsyncStorageKeyValue`, `FetchHttpClient`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
 
-The full **class diagram** (with patterns and layer colors) lives in
-[`docs/diagrams/class-diagram.png`](./docs/diagrams/class-diagram.png).
+### Class diagram (patterns + layer colors)
+
+<div align="center">
+
+![Class diagram](./docs/diagrams/class-diagram.png)
+
+</div>
 
 > Editable diagram sources (PlantUML) live in
 > [`docs/diagrams/clean-architecture.puml`](./docs/diagrams/clean-architecture.puml) and

@@ -40,11 +40,11 @@ package "Layer 1 — Domain" #F5E6B3 {
   interface IScoringStrategy
   class StandardScoringStrategy
 
-  Board o-- Cell : grid (Composite)
+  Board *-- Cell : grid\n(Composite)
   GameSession --> Board
   GameSession --> PathTraversalService
-  Level --> Board
-  StandardScoringStrategy ..|> IScoringStrategy
+  Level o-- Board
+  StandardScoringStrategy ..|> IScoringStrategy : Strategy
 }
 
 package "Layer 2 — Application" #E8DDF0 {
@@ -90,9 +90,9 @@ package "Layer 3 — Interface Adapters" #CFE8DA {
   class InMemoryEventBus
   class SessionStore
 
-  BundledLevelRepository ..|> ILevelRepository
-  LocalProgressRepository ..|> IProgressRepository
-  InMemoryEventBus ..|> IEventPublisher
+  BundledLevelRepository ..|> ILevelRepository : Adapter
+  LocalProgressRepository ..|> IProgressRepository : Adapter
+  InMemoryEventBus ..|> IEventPublisher : Observer\n(subject)
   SessionStore ..|> ISessionSource
   JsonLevelBuilder --> JsonCellFactory : Factory Method
 }
@@ -101,7 +101,10 @@ package "Layer 4 — Frameworks & Drivers" #DDE6F0 {
   class AsyncStorageKeyValue
   class FetchHttpClient
   class AudioManager <<Singleton>>
+  class "useGame" as UseGame <<ViewModel>>
   class "container.ts" as Container <<Composition Root>>
+
+  UseGame --> UseCase : executes
 
   note as Layer3Note
     The Composition Root instantiates every
@@ -110,4 +113,16 @@ package "Layer 4 — Frameworks & Drivers" #DDE6F0 {
   end note
   Container .. Layer3Note
 }
+
+legend right
+  |= Color |= Layer |
+  |<#F5E6B3> | 1 — Domain |
+  |<#E8DDF0> | 2 — Application |
+  |<#CFE8DA> | 3 — Interface Adapters |
+  |<#DDE6F0> | 4 — Frameworks & Drivers |
+  Notation: arrow = association · open diamond = aggregation
+  filled diamond = composition · solid triangle = inheritance
+  dashed triangle = implements an interface
+  Patterns labeled on their edges/stereotypes.
+endlegend
 @enduml
