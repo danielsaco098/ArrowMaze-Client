@@ -343,6 +343,7 @@ npx eas build -p android --profile preview
 
 ```bash
 npm test               # all unit + widget tests (Jest, two projects)
+npm run test:pact      # Pact consumer-contract tests (generates pacts/*.json)
 npm run test:coverage  # coverage report
 npm run typecheck      # tsc --noEmit
 ```
@@ -353,7 +354,13 @@ npm run typecheck      # tsc --noEmit
   (Arrange–Act–Assert) and the naming convention
   `should_<expected>_when_<condition>` (e.g. `should_return_victory_state_when_the_board_is_cleared`).
   A solver test even proves all 15 bundled levels are solvable.
-- **Widget tests** verify component rendering, board interaction and navigation.
+- **Widget tests** verify component rendering, board interaction and navigation flows
+  (home → level select → game → victory, and defeat → retry) through the real `Router`.
+- **Contract tests (Pact)** — [`pact/consumer.pact.test.ts`](./pact/consumer.pact.test.ts) runs the real
+  REST adapters against a Pact mock provider and records the client↔backend contract into
+  [`pacts/`](./pacts). The backend repo verifies that same file against the real NestJS app
+  (`npm run test:pact` there), so a breaking change on either side fails CI. After changing the
+  contract, regenerate here and copy the JSON to the backend's `test/pacts/`.
 - Tests run automatically on every push and Pull Request via **GitHub Actions** (`.github/workflows/ci.yml`).
 
 ---

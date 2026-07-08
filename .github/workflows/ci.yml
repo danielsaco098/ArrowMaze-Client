@@ -29,3 +29,6 @@ jobs:
 
       - name: Run tests
         run: npm test -- --ci
+
+      - name: Run Pact consumer-contract tests
+        run: npm run test:pact

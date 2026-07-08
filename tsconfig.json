@@ -4,5 +4,8 @@
     "strict": true,
     "types": ["jest", "react"]
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  // The Pact consumer tests type-check through their own ts-jest config
+  // (jest.pact.config.js), which adds the node types they need.
+  "exclude": ["node_modules", "pact"]
 }
