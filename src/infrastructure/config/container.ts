@@ -24,6 +24,7 @@ import { LoggingUseCaseDecorator } from '../../application/decorators/LoggingUse
 import { MetricsUseCaseDecorator } from '../../application/decorators/MetricsUseCaseDecorator';
 import { ExceptionHandlingUseCaseDecorator } from '../../application/decorators/ExceptionHandlingUseCaseDecorator';
 import { AuthenticationUseCaseDecorator } from '../../application/decorators/AuthenticationUseCaseDecorator';
+import { CachingUseCaseDecorator } from '../../application/decorators/CachingUseCaseDecorator';
 import { BundledLevelRepository } from '../../adapters/repositories/BundledLevelRepository';
 import { LocalProgressRepository } from '../../adapters/repositories/LocalProgressRepository';
 import { InMemoryEventBus } from '../../adapters/events/InMemoryEventBus';
@@ -116,6 +117,12 @@ export function createContainer(): AppContainer {
   const requireSession = <I, O>(useCase: UseCase<I, O>, name: string): UseCase<I, O> =>
     new AuthenticationUseCaseDecorator(useCase, name, session);
 
+  // Caching aspect: memoizes leaderboard queries for a short window so
+  // flipping between the Level/Total tabs does not re-hit the network.
+  const LEADERBOARD_CACHE_TTL_MS = 15_000;
+  const withCache = <I, O>(useCase: UseCase<I, O>, name: string): UseCase<I, O> =>
+    new CachingUseCaseDecorator(useCase, name, clock, LEADERBOARD_CACHE_TTL_MS);
+
   return {
     levels,
     eventBus,
@@ -128,11 +135,17 @@ export function createContainer(): AppContainer {
       'SyncProgress',
     ),
     getLeaderboard: withAspects(
-      requireSession(new GetLeaderboardUseCase(leaderboardApi), 'GetLeaderboard'),
+      requireSession(
+        withCache(new GetLeaderboardUseCase(leaderboardApi), 'GetLeaderboard'),
+        'GetLeaderboard',
+      ),
       'GetLeaderboard',
     ),
     getOverallLeaderboard: withAspects(
-      requireSession(new GetOverallLeaderboardUseCase(leaderboardApi), 'GetOverallLeaderboard'),
+      requireSession(
+        withCache(new GetOverallLeaderboardUseCase(leaderboardApi), 'GetOverallLeaderboard'),
+        'GetOverallLeaderboard',
+      ),
       'GetOverallLeaderboard',
     ),
     authApi: new RestAuthApi(http),
