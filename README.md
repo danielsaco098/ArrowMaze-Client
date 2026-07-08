@@ -124,18 +124,22 @@ Each principle is applied and traceable to concrete code.
   each with one reason to change.
 - **O — Open/Closed.** New cell types extend the [`Cell`](./src/domain/entities/Cell.ts) base and add one
   `case` in [`JsonCellFactory`](./src/adapters/factories/JsonCellFactory.ts); existing cells and callers stay
-  untouched. Likewise a new scoring algorithm just implements `IScoringStrategy`.
-- **L — Liskov Substitution.** `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell` are interchangeable wherever a
-  [`Cell`](./src/domain/entities/Cell.ts) is expected; [`PathTraversalService`](./src/domain/services/PathTraversalService.ts)
-  relies only on the polymorphic `isPassable()`.
+  untouched. Proven in practice: the collectible-star power-up landed as one new class
+  ([`CollectibleCell`](./src/domain/entities/CollectibleCell.ts)) + one factory `case`, with **zero** edits to the
+  other cells or the traversal. Likewise a new scoring algorithm just implements `IScoringStrategy`.
+- **L — Liskov Substitution.** `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`/`CollectibleCell` are interchangeable
+  wherever a [`Cell`](./src/domain/entities/Cell.ts) is expected;
+  [`PathTraversalService`](./src/domain/services/PathTraversalService.ts) relies only on the polymorphic
+  `isPassable()`, so it slides arrows over stars and around walls without knowing either type.
 - **I — Interface Segregation.** Concerns are split into narrow, single-method ports
   ([`IClock`](./src/application/ports/IClock.ts), [`ILogger`](./src/application/ports/ILogger.ts),
-  [`IMetricsRecorder`](./src/application/ports/IMetricsRecorder.ts), [`IKeyValueStorage`](./src/application/ports/IKeyValueStorage.ts))
-  instead of one fat interface, so each class depends only on what it uses.
+  [`IMetricsRecorder`](./src/application/ports/IMetricsRecorder.ts), [`IKeyValueStorage`](./src/application/ports/IKeyValueStorage.ts),
+  [`ISessionSource`](./src/application/ports/ISessionSource.ts)) instead of one fat interface, so each class
+  depends only on what it uses.
 - **D — Dependency Inversion.** Use cases depend on abstractions
-  ([`ILevelRepository`](./src/application/ports/ILevelRepository.ts), `IEventPublisher`, `IScoringStrategy`),
-  never on AsyncStorage or concrete engines; implementations are injected at the
-  [Composition Root](./src/infrastructure/config/container.ts).
+  ([`ILevelRepository`](./src/application/ports/ILevelRepository.ts), `IEventPublisher`, `IScoringStrategy`,
+  [`ISessionSource`](./src/application/ports/ISessionSource.ts)), never on AsyncStorage or concrete engines;
+  implementations are injected at the [Composition Root](./src/infrastructure/config/container.ts).
 
 ---
 
