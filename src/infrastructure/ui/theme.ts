@@ -10,6 +10,7 @@ export const theme = {
     muted: '#9AA0C7',
     arrow: '#6FE3C4',
     hole: '#000000',
+    wall: '#3A3F63',
     exit: '#FFD166',
     danger: '#FF6B6B',
     success: '#6FE3C4',

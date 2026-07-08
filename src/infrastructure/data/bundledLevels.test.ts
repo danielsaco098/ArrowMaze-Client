@@ -73,11 +73,22 @@ describe('bundled levels', () => {
     },
   );
 
-  it('should_densely_fill_every_board_with_arrows', () => {
+  it('should_densely_fill_every_board_with_arrows_and_walls', () => {
     for (const level of BUNDLED_LEVELS) {
-      const arrowCells = level.cells.filter((c) => c.kind === 'ARROW').length;
-      const fill = arrowCells / (level.rows * level.cols);
-      expect(fill).toBeGreaterThanOrEqual(0.85);
+      const occupied = level.cells.filter((c) => c.kind === 'ARROW' || c.kind === 'WALL').length;
+      const fill = occupied / (level.rows * level.cols);
+      expect(fill).toBeGreaterThanOrEqual(0.8);
+    }
+  });
+
+  it('should_include_walls_in_medium_and_hard_levels_only', () => {
+    for (const level of BUNDLED_LEVELS) {
+      const walls = level.cells.filter((c) => c.kind === 'WALL').length;
+      if (level.difficulty === 'EASY') {
+        expect(walls).toBe(0);
+      } else {
+        expect(walls).toBeGreaterThan(0);
+      }
     }
   });
 

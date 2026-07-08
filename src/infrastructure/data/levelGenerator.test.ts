@@ -49,4 +49,22 @@ describe('generateLevel', () => {
       expect(isSolvable(board)).toBe(true);
     }
   });
+
+  it('should_place_the_requested_walls_and_stay_solvable', () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      // Arrange / Act
+      const data = generateLevel({ ...config, seed, walls: 3 });
+
+      // Assert: walls present (interior only) and the board still clears
+      const walls = data.cells.filter((c) => c.kind === 'WALL');
+      expect(walls).toHaveLength(3);
+      for (const wall of walls) {
+        expect(wall.row).toBeGreaterThan(0);
+        expect(wall.row).toBeLessThan(config.rows - 1);
+        expect(wall.col).toBeGreaterThan(0);
+        expect(wall.col).toBeLessThan(config.cols - 1);
+      }
+      expect(isSolvable(builder.build(data).board)).toBe(true);
+    }
+  });
 });
