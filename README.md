@@ -58,13 +58,18 @@ outer layers know about inner layers, never the reverse. Frameworks, the databas
 
 | Layer | Folder | Responsibility | Key components |
 | --- | --- | --- | --- |
-| **1 — Domain (Entities)** | `src/domain` | Pure business rules, zero external imports. Fully unit-testable in isolation. | `Board`, `Cell`, `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`, `Level`, `GameSession` (aggregate root), `PlayerProgress`; VOs `Position`/`Direction`/`Score`/`Lives`; services `PathTraversalService`, `StandardScoringStrategy`; events `PlayerMoved`/`LevelCompleted`/`GameOver` |
-| **2 — Application (Use Cases)** | `src/application` | Orchestrates the domain; depends only on **ports**, never concretions. | Use cases `TapCellUseCase`, `LoadLevelUseCase`, `RecordLevelResultUseCase`, `GetProgressUseCase`; AOP decorators; ports `ILevelRepository`, `IProgressRepository`, `IEventPublisher`, `ICellFactory`, `ILevelBuilder`, `IObserver`, `IKeyValueStorage`, `ILogger`, `IClock`, `IMetricsRecorder`, `IAudioService` |
-| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `ProgressMapper`, `InMemoryEventBus`, `AudioObserver` |
-| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), `AsyncStorageKeyValue`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
+| **1 — Domain (Entities)** | `src/domain` | Pure business rules, zero external imports. Fully unit-testable in isolation. | `Board`, `Cell`, `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`/`CollectibleCell`, `Level`, `GameSession` (aggregate root), `PlayerProgress`; VOs `Position`/`Direction`/`Score`/`Lives`; services `PathTraversalService`, `StandardScoringStrategy`; events `PlayerMoved`/`LevelCompleted`/`GameOver` |
+| **2 — Application (Use Cases)** | `src/application` | Orchestrates the domain; depends only on **ports**, never concretions. | Use cases `TapCellUseCase`, `LoadLevelUseCase`, `RecordLevelResultUseCase`, `GetProgressUseCase`, `SyncProgressUseCase`, `GetLeaderboardUseCase`, `GetOverallLeaderboardUseCase`; AOP decorators (Logging/Metrics/ExceptionHandling/**Authentication**); ports `ILevelRepository`, `IProgressRepository`, `IEventPublisher`, `ICellFactory`, `ILevelBuilder`, `IObserver`, `IKeyValueStorage`, `IHttpClient`, `ISessionSource`, `ILogger`, `IClock`, `IMetricsRecorder`, `IAudioService` |
+| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`/`RestLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `ProgressMapper`, `InMemoryEventBus`, `AudioObserver`, `SessionStore`, `RestAuthApi`/`RestLeaderboardApi`/`RestProgressApi` |
+| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), `AsyncStorageKeyValue`, `FetchHttpClient`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
 
 The full **class diagram** (with patterns and layer colors) lives in
 [`docs/diagrams/class-diagram.png`](./docs/diagrams/class-diagram.png).
+
+> Editable diagram sources (PlantUML) live in
+> [`docs/diagrams/clean-architecture.puml`](./docs/diagrams/clean-architecture.puml) and
+> [`docs/diagrams/class-diagram.puml`](./docs/diagrams/class-diagram.puml); the PNGs above are their
+> rendered exports (any PlantUML tool re-renders them).
 
 ### Source layout
 
