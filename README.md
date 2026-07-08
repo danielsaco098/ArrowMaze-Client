@@ -107,10 +107,136 @@ Eight GoF patterns are implemented across the three categories. Each row links t
 | Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a `LevelData` definition (empty grid → place cells → board → metadata). | [JsonLevelBuilder.ts](./src/adapters/builders/JsonLevelBuilder.ts) |
 | Creational | **Singleton** | `AudioManager` exposes a single shared instance (`getInstance`) that owns the global mute flag and audio engine. | [AudioManager.ts](./src/infrastructure/audio/AudioManager.ts) |
 | Structural | **Composite** | `Board` holds the grid and treats every `Cell` subtype uniformly through the `Cell` base (e.g. `isPassable`). | [Board.ts](./src/domain/entities/Board.ts) |
-| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
+| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` / `AuthenticationUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
 | Structural | **Adapter** | `LocalProgressRepository` adapts the `IKeyValueStorage` port to the `IProgressRepository` port; `AsyncStorageKeyValue` adapts React Native's AsyncStorage to `IKeyValueStorage`. | [LocalProgressRepository.ts](./src/adapters/repositories/LocalProgressRepository.ts) · [AsyncStorageKeyValue.ts](./src/infrastructure/storage/AsyncStorageKeyValue.ts) |
 | Behavioral | **Strategy** | `IScoringStrategy` / `StandardScoringStrategy` make the scoring algorithm interchangeable; `BundledLevelRepository` is a swappable `ILevelRepository` strategy. | [StandardScoringStrategy.ts](./src/domain/services/StandardScoringStrategy.ts) |
 | Behavioral | **Observer** | `InMemoryEventBus` (subject) notifies subscribers; `AudioObserver` reacts to `PlayerMoved`/`LevelCompleted`/`GameOver`. | [InMemoryEventBus.ts](./src/adapters/events/InMemoryEventBus.ts) · [AudioObserver.ts](./src/adapters/observers/AudioObserver.ts) |
+
+### Representative fragments
+
+<details>
+<summary><b>Factory Method</b> — one place decides which concrete <code>Cell</code> to build</summary>
+
+```ts
+// src/adapters/factories/JsonCellFactory.ts
+create(spec: CellSpec, position: Position): Cell {
+  switch (spec.kind) {
+    case 'ARROW': {
+      const arrowId = spec.arrowId ?? deriveArrowId(position);
+      const color = spec.color ?? arrowColorFor(arrowId);
+      return new ArrowCell(position, Direction.fromName(spec.direction), arrowId, color);
+    }
+    case 'WALL':        return new WallCell(position);
+    case 'EMPTY':       return new EmptyCell(position);
+    case 'EXIT':        return new ExitCell(position);
+    case 'COLLECTIBLE': return new CollectibleCell(position);
+  }
+}
+```
+Adding the collectible power-up required only the last `case` — no caller changed.
+</details>
+
+<details>
+<summary><b>Builder</b> — a level is assembled step by step from JSON data</summary>
+
+```ts
+// src/adapters/builders/JsonLevelBuilder.ts
+build(data: LevelData): Level {
+  const grid = this.createEmptyGrid(data.rows, data.cols);   // 1. lay out the grid
+  this.placeCells(grid, data.cells, data.rows, data.cols);   // 2. place each cell
+  const board = new Board(grid);                             // 3. wrap in a Board
+  return new Level(data.id, data.name, data.difficulty, board, data.timeLimitSeconds);
+}
+```
+</details>
+
+<details>
+<summary><b>Singleton</b> — one shared audio controller for the whole app</summary>
+
+```ts
+// src/infrastructure/audio/AudioManager.ts
+export class AudioManager implements IAudioService {
+  private static instance: AudioManager | null = null;
+  private constructor() {}
+
+  static getInstance(): AudioManager {
+    if (!AudioManager.instance) {
+      AudioManager.instance = new AudioManager();
+    }
+    return AudioManager.instance;
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Composite</b> — the board treats every cell subtype uniformly</summary>
+
+```ts
+// src/domain/entities/Board.ts — traversal never asks which subtype it holds
+cells(): Cell[] {
+  return this.grid.flat();
+}
+// src/domain/services/PathTraversalService.ts relies only on the polymorphic
+// cell.isPassable() — arrows block, walls block, stars and empties let through.
+```
+</details>
+
+<details>
+<summary><b>Decorator</b> — cross-cutting concerns wrap any use case</summary>
+
+```ts
+// src/application/decorators/AuthenticationUseCaseDecorator.ts
+async execute(input: TInput): Promise<TOutput> {
+  const token = await this.sessions.getToken();
+  if (!token) {
+    throw new NotAuthenticatedError(this.operation);
+  }
+  return this.inner.execute(input); // the wrapped use case runs untouched
+}
+```
+Stacked at the Composition Root: `withAspects(requireSession(new SyncProgressUseCase(...)))`.
+</details>
+
+<details>
+<summary><b>Adapter</b> — external libraries never leak past Layer 4</summary>
+
+```ts
+// src/infrastructure/storage/AsyncStorageKeyValue.ts
+export class AsyncStorageKeyValue implements IKeyValueStorage {
+  getItem(key: string): Promise<string | null> {
+    return AsyncStorage.getItem(key); // the only file that imports AsyncStorage
+  }
+}
+```
+</details>
+
+<details>
+<summary><b>Strategy</b> — the scoring algorithm is swappable at runtime</summary>
+
+```ts
+// src/domain/services/StandardScoringStrategy.ts
+score({ moves, elapsedMs, difficulty, collectibles = 0 }: ScoreInput): Score {
+  const raw = base - moves * movePenalty - seconds * timePenaltyPerSecond
+            + collectibles * collectibleBonus;
+  return Score.of(Math.max(minimumScore, raw));
+}
+// Any IScoringStrategy (e.g. a speed-run variant) plugs into RecordLevelResultUseCase.
+```
+</details>
+
+<details>
+<summary><b>Observer</b> — game events fan out to decoupled listeners</summary>
+
+```ts
+// src/adapters/events/InMemoryEventBus.ts
+publish(event: GameEvent): void {
+  for (const observer of [...this.observers]) {
+    observer.notify(event); // UI, scoring and audio react without coupling
+  }
+}
+```
+</details>
 
 ---
 
