@@ -9,7 +9,15 @@ export function useSound() {
   const [muted, setMuted] = useState<boolean>(() => AudioManager.getInstance().isMuted());
 
   const toggleMuted = useCallback(() => {
-    setMuted(AudioManager.getInstance().toggleMuted());
+    const audio = AudioManager.getInstance();
+    const nowMuted = audio.toggleMuted();
+    // The flag only gates FUTURE calls, so silence/resume the running music too.
+    if (nowMuted) {
+      audio.stopMusic();
+    } else {
+      audio.startMusic();
+    }
+    setMuted(nowMuted);
   }, []);
 
   return { muted, toggleMuted };
