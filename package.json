@@ -20,6 +20,7 @@
     "babel-preset-expo": "~56.0.0",
     "expo": "~56.0.12",
     "expo-audio": "~56.0.12",
+    "expo-build-properties": "~56.0.22",
     "expo-status-bar": "~56.0.4",
     "jest-expo": "~56.0.5",
     "react": "19.2.3",
