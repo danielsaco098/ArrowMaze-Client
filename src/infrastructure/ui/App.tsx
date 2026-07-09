@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet } from 'react-native';
+import { Platform, SafeAreaView, StatusBar, StyleSheet } from 'react-native';
 import { AppContainerProvider } from './AppContainerContext';
 import { NavigationProvider } from './navigation/NavigationContext';
 import { I18nProvider } from './i18n/I18nContext';
@@ -40,5 +40,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: theme.colors.background,
+    // RN's SafeAreaView is a no-op on Android, so the header row rendered
+    // inside the status bar's touch zone and its taps were swallowed by the
+    // notification-shade gesture. Push all content below the status bar.
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
   },
 });
