@@ -380,6 +380,8 @@ See [`AI_USAGE.md`](./AI_USAGE.md) for tools used, per-task prompt logs, modific
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md). In short:
 
 - **Conventional Commits** in English: `feat(board): add arrow slide-out logic`
+- The format is enforced locally by a **commitlint** commit-msg hook (husky) — a malformed
+  message is rejected before it enters history.
 - Work on feature branches → open a **Pull Request** → CI must pass → review → merge.
 - `main` is protected (no direct pushes).
 
