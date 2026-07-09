@@ -45,3 +45,7 @@ desktop.ini
 
 # TypeScript
 *.tsbuildinfo
+
+# EAS signing credentials (never commit)
+credentials.json
+credentials/
