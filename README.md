@@ -36,11 +36,9 @@ increasing difficulty. Score is computed from **moves used** and **time elapsed*
 
 ## 📱 Demo / Screenshots
 
-> _Placeholder — replace with real captures/GIF before delivery (Section 6.1 requires this for the game repo)._
-
 | Home | Level Select | Gameplay | Victory |
 | --- | --- | --- | --- |
-| _TODO_ | _TODO_ | _TODO_ | _TODO_ |
+| <img src="./docs/screenshots/home.png" width="200" alt="Home screen" /> | <img src="./docs/screenshots/level-select.png" width="200" alt="Level select" /> | <img src="./docs/screenshots/gameplay.png" width="200" alt="Gameplay" /> | <img src="./docs/screenshots/victory.png" width="200" alt="Victory" /> |
 
 ---
 
