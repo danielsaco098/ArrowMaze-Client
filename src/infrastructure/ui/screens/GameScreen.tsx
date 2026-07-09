@@ -24,6 +24,8 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
     remainingSeconds,
     collected,
     totalCollectibles,
+    escaping,
+    shakingArrowId,
     board,
     holes,
     level,
@@ -75,7 +77,13 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
 
       <View style={styles.boardArea}>
         {board ? (
-          <BoardView board={board} holes={holes} onTapCell={onTapCell} />
+          <BoardView
+            board={board}
+            holes={holes}
+            escaping={escaping}
+            shakingArrowId={shakingArrowId}
+            onTapCell={onTapCell}
+          />
         ) : (
           <Text style={styles.loading}>{t('common.loading')}</Text>
         )}
