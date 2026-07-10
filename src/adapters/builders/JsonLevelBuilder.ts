@@ -66,7 +66,13 @@ export class JsonLevelBuilder implements ILevelBuilder {
       }
       const position = new Position(cell.row, cell.col);
       grid[cell.row][cell.col] = this.cellFactory.create(
-        { kind: cell.kind, direction: cell.direction, arrowId: cell.arrowId, color: cell.color },
+        {
+          kind: cell.kind,
+          direction: cell.direction,
+          arrowId: cell.arrowId,
+          color: cell.color,
+          segmentIndex: cell.segmentIndex,
+        },
         position,
       );
     }

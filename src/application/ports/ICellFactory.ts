@@ -12,6 +12,8 @@ export interface CellSpec {
   readonly arrowId?: number;
   /** Optional explicit color; defaults to a palette color derived from the arrowId. */
   readonly color?: string;
+  /** Order of this cell along its arrow's path (0 = tail, highest = head). */
+  readonly segmentIndex?: number;
 }
 
 /**

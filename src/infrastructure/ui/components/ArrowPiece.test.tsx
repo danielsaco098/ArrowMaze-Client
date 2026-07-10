@@ -23,4 +23,29 @@ describe('ArrowPiece', () => {
     // Assert
     expect(getByLabelText('arrow-left')).toBeTruthy();
   });
+
+  it('should_render_an_elbow_slice_when_the_path_turns_in_this_cell', async () => {
+    // Arrange / Act: the previous segment came in pointing UP, this one exits RIGHT
+    const { getByLabelText } = await render(
+      <ArrowPiece
+        direction="RIGHT"
+        incoming="UP"
+        color="#C792EA"
+        isHead={false}
+        isTail={false}
+        size={40}
+      />,
+    );
+    // Assert: labelled by its exit direction
+    expect(getByLabelText('arrow-right')).toBeTruthy();
+  });
+
+  it('should_render_a_turning_head_when_the_last_segment_bends_into_the_exit', async () => {
+    // Arrange / Act: the line enters from the left (incoming RIGHT) and exits UP
+    const { getByLabelText } = await render(
+      <ArrowPiece direction="UP" incoming="RIGHT" color="#FFD166" isHead isTail={false} size={40} />,
+    );
+    // Assert
+    expect(getByLabelText('arrow-up')).toBeTruthy();
+  });
 });

@@ -3,7 +3,10 @@ import { View, StyleSheet, type ViewStyle } from 'react-native';
 import type { DirectionName } from '../../../domain/value-objects/Direction';
 
 interface Props {
+  /** This segment's direction: where the path continues (the head's exit). */
   direction: DirectionName;
+  /** The previous segment's direction (the one pointing INTO this cell); null at the tail. */
+  incoming?: DirectionName | null;
   color: string;
   /** True when this cell is the leading cell (head) of its arrow. */
   isHead: boolean;
@@ -12,109 +15,79 @@ interface Props {
   size: number;
 }
 
+const OPPOSITE: Record<DirectionName, DirectionName> = {
+  UP: 'DOWN',
+  DOWN: 'UP',
+  LEFT: 'RIGHT',
+  RIGHT: 'LEFT',
+};
+
 /**
- * Renders one cell's slice of a coloured arrow as a thin neon line. Body slices
- * are a slim bar that butts against its neighbours so the whole arrow reads as a
- * single continuous line; the tail end is rounded and the head adds a triangular
- * arrowhead, so each arrow's length and direction stay unambiguous even when two
- * same-coloured arrows sit side by side. The cell behind it is transparent.
+ * Renders one cell's slice of a winding neon arrow. Each slice is built from
+ * "arms" — thin bars running from the cell's centre to one of its edges — so a
+ * straight slice is two collinear arms, and a turn (the previous segment came
+ * in from a perpendicular side) is two arms meeting at the centre in an elbow.
+ * The tail starts with a rounded cap at the centre and the head ends in a
+ * triangular arrowhead, so length and exit direction stay unambiguous.
  */
-export function ArrowPiece({ direction, color, isHead, isTail, size }: Props): React.JSX.Element {
-  const horizontal = direction === 'LEFT' || direction === 'RIGHT';
-  const thickness = Math.round(size * 0.2);
-  const headLen = Math.round(size * 0.42);
-  const headHalf = Math.round(size * 0.3);
-  const tailCap = isTail ? tailCapStyle(direction, Math.round(thickness / 2)) : null;
+export function ArrowPiece({
+  direction,
+  incoming = null,
+  color,
+  isHead,
+  isTail,
+  size,
+}: Props): React.JSX.Element {
+  const t = Math.max(3, Math.round(size * 0.16));
   const label = `arrow-${direction.toLowerCase()}`;
+  // The line enters through the edge shared with the previous segment.
+  const entrySide = incoming ? OPPOSITE[incoming] : null;
 
   if (!isHead) {
-    // Body slice: a full-length bar so it touches the neighbouring slices.
     return (
-      <View
-        accessibilityLabel={label}
-        style={[
-          { backgroundColor: color },
-          horizontal ? { height: thickness, width: '100%' } : { width: thickness, height: '100%' },
-          tailCap,
-        ]}
-      />
+      <View accessibilityLabel={label} style={styles.fill}>
+        {entrySide && <View style={arm(entrySide, size, t, color)} />}
+        <View style={[arm(direction, size, t, color), isTail && roundedCap(direction, t)]} />
+      </View>
     );
   }
 
-  const shaft: ViewStyle = horizontal
-    ? { backgroundColor: color, height: thickness, width: size - headLen }
-    : { backgroundColor: color, width: thickness, height: size - headLen };
-  const head = arrowheadStyle(direction, headLen, headHalf, color);
-  const headFirst = direction === 'LEFT' || direction === 'UP';
-
+  const headLen = Math.round(size * 0.42);
+  const headHalf = Math.max(t, Math.round(size * 0.26));
+  // A single-cell arrow still shows a short shaft behind the head.
+  const backSide = entrySide ?? OPPOSITE[direction];
   return (
-    <View
-      accessibilityLabel={label}
-      style={[styles.head, { flexDirection: horizontal ? 'row' : 'column' }]}
-    >
-      {headFirst && <View style={head} />}
-      <View style={[shaft, tailCap]} />
-      {!headFirst && <View style={head} />}
+    <View accessibilityLabel={label} style={styles.fill}>
+      <View style={[arm(backSide, size, t, color), isTail && roundedCap(backSide, t)]} />
+      <View style={shaftToHead(direction, size, t, headLen, color)} />
+      <View style={arrowhead(direction, size, headLen, headHalf, color)} />
     </View>
   );
 }
 
-/** A CSS-border triangle pointing in `direction` (no SVG dependency needed). */
-function arrowheadStyle(
-  direction: DirectionName,
-  len: number,
-  half: number,
-  color: string,
-): ViewStyle {
-  const base: ViewStyle = { width: 0, height: 0 };
-  switch (direction) {
-    case 'RIGHT':
-      return {
-        ...base,
-        borderTopWidth: half,
-        borderBottomWidth: half,
-        borderLeftWidth: len,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        borderLeftColor: color,
-      };
+/** A thin bar from the cell's centre to the given edge. */
+function arm(side: DirectionName, size: number, t: number, color: string): ViewStyle {
+  const c = size / 2;
+  const near = c - t / 2;
+  const span = c + t / 2;
+  const base: ViewStyle = { position: 'absolute', backgroundColor: color };
+  switch (side) {
     case 'LEFT':
-      return {
-        ...base,
-        borderTopWidth: half,
-        borderBottomWidth: half,
-        borderRightWidth: len,
-        borderTopColor: 'transparent',
-        borderBottomColor: 'transparent',
-        borderRightColor: color,
-      };
-    case 'DOWN':
-      return {
-        ...base,
-        borderLeftWidth: half,
-        borderRightWidth: half,
-        borderTopWidth: len,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderTopColor: color,
-      };
+      return { ...base, left: 0, top: near, width: span, height: t };
+    case 'RIGHT':
+      return { ...base, left: near, top: near, width: span, height: t };
     case 'UP':
+      return { ...base, top: 0, left: near, width: t, height: span };
+    case 'DOWN':
     default:
-      return {
-        ...base,
-        borderLeftWidth: half,
-        borderRightWidth: half,
-        borderBottomWidth: len,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderBottomColor: color,
-      };
+      return { ...base, top: near, left: near, width: t, height: span };
   }
 }
 
-/** Rounds the back (tail) end of the line, opposite the pointing direction. */
-function tailCapStyle(direction: DirectionName, r: number): ViewStyle {
-  switch (direction) {
+/** Rounds the centre end of an arm (the visible start of a tail). */
+function roundedCap(side: DirectionName, t: number): ViewStyle {
+  const r = Math.round(t / 2);
+  switch (side) {
     case 'RIGHT':
       return { borderTopLeftRadius: r, borderBottomLeftRadius: r };
     case 'LEFT':
@@ -127,11 +100,97 @@ function tailCapStyle(direction: DirectionName, r: number): ViewStyle {
   }
 }
 
+/** The short bar between the centre and the arrowhead's base. */
+function shaftToHead(
+  direction: DirectionName,
+  size: number,
+  t: number,
+  headLen: number,
+  color: string,
+): ViewStyle {
+  const c = size / 2;
+  const near = c - t / 2;
+  const len = Math.max(0, size - headLen - near);
+  const base: ViewStyle = { position: 'absolute', backgroundColor: color };
+  switch (direction) {
+    case 'RIGHT':
+      return { ...base, left: near, top: near, width: len, height: t };
+    case 'LEFT':
+      return { ...base, left: headLen, top: near, width: len, height: t };
+    case 'DOWN':
+      return { ...base, top: near, left: near, width: t, height: len };
+    case 'UP':
+    default:
+      return { ...base, top: headLen, left: near, width: t, height: len };
+  }
+}
+
+/** A CSS-border triangle at the exit edge, pointing in `direction`. */
+function arrowhead(
+  direction: DirectionName,
+  size: number,
+  len: number,
+  half: number,
+  color: string,
+): ViewStyle {
+  const c = size / 2;
+  const base: ViewStyle = { position: 'absolute', width: 0, height: 0 };
+  switch (direction) {
+    case 'RIGHT':
+      return {
+        ...base,
+        left: size - len,
+        top: c - half,
+        borderTopWidth: half,
+        borderBottomWidth: half,
+        borderLeftWidth: len,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderLeftColor: color,
+      };
+    case 'LEFT':
+      return {
+        ...base,
+        left: 0,
+        top: c - half,
+        borderTopWidth: half,
+        borderBottomWidth: half,
+        borderRightWidth: len,
+        borderTopColor: 'transparent',
+        borderBottomColor: 'transparent',
+        borderRightColor: color,
+      };
+    case 'DOWN':
+      return {
+        ...base,
+        top: size - len,
+        left: c - half,
+        borderLeftWidth: half,
+        borderRightWidth: half,
+        borderTopWidth: len,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderTopColor: color,
+      };
+    case 'UP':
+    default:
+      return {
+        ...base,
+        top: 0,
+        left: c - half,
+        borderLeftWidth: half,
+        borderRightWidth: half,
+        borderBottomWidth: len,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        borderBottomColor: color,
+      };
+  }
+}
+
 const styles = StyleSheet.create({
-  head: {
+  fill: {
     width: '100%',
     height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

@@ -4,11 +4,19 @@ import type { Board } from '../../../domain/entities/Board';
 import type { Cell } from '../../../domain/entities/Cell';
 import { ArrowCell } from '../../../domain/entities/ArrowCell';
 import type { Position } from '../../../domain/value-objects/Position';
+import type { DirectionName } from '../../../domain/value-objects/Direction';
 import type { EscapingArrow } from '../hooks/useGame';
 import { CellView } from './CellView';
 import { ArrowPiece } from './ArrowPiece';
 
-const MAX_BOARD_WIDTH = 340;
+const MAX_BOARD_WIDTH = 320;
+
+/** Per-cell path info: how the line enters the cell and whether it ends there. */
+interface SegmentInfo {
+  incoming: DirectionName | null;
+  isHead: boolean;
+  isTail: boolean;
+}
 
 interface Props {
   board: Board;
@@ -37,14 +45,18 @@ export function BoardView({
     rows.push(cells.slice(r * board.cols, r * board.cols + board.cols));
   }
 
-  // Precompute the head and tail cell of every arrow so each multi-cell arrow
-  // gets its arrowhead and its rounded tail in exactly the right place.
-  const headKeys = new Set<string>();
-  const tailKeys = new Set<string>();
+  // Walk every arrow's path once so each cell knows its role in the line:
+  // where the line comes in (for elbows) and whether it is the head or tail.
+  const segments = new Map<string, SegmentInfo>();
   for (const arrowId of board.arrowIds()) {
-    const head = board.headOfArrow(arrowId);
-    headKeys.add(`${head.row},${head.col}`);
-    tailKeys.add(keyOfTail(cells, arrowId));
+    const path = board.pathOfArrow(arrowId);
+    path.forEach((cell, i) => {
+      segments.set(`${cell.position.row},${cell.position.col}`, {
+        incoming: i === 0 ? null : path[i - 1].direction.name,
+        isHead: i === path.length - 1,
+        isTail: i === 0,
+      });
+    });
   }
 
   // Blocked feedback: one shared value keeps every cell of the arrow in sync.
@@ -67,6 +79,7 @@ export function BoardView({
         <View key={`row-${r}`} style={styles.row}>
           {row.map((cell) => {
             const key = `${cell.position.row},${cell.position.col}`;
+            const info = segments.get(key);
             const isShaking =
               shakingArrowId !== null &&
               cell instanceof ArrowCell &&
@@ -76,8 +89,9 @@ export function BoardView({
                 key={key}
                 cell={cell}
                 size={size}
-                isHead={headKeys.has(key)}
-                isTail={tailKeys.has(key)}
+                isHead={info?.isHead ?? false}
+                isTail={info?.isTail ?? false}
+                incoming={info?.incoming ?? null}
                 isHole={holes.has(key)}
                 onPress={onTapCell}
               />
@@ -99,7 +113,7 @@ export function BoardView({
 
 /**
  * Overlay copy of an arrow that just escaped: drawn at its former grid
- * position, then translated along its direction until it leaves the screen.
+ * position, then translated along its exit direction until it leaves the screen.
  */
 function EscapingArrowOverlay({
   escaping,
@@ -133,18 +147,11 @@ function EscapingArrowOverlay({
     { translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [0, delta.y] }) },
   ];
 
-  // Head = the cell furthest along the pointing direction; tail = the opposite end.
-  const dirVector = { UP: [-1, 0], DOWN: [1, 0], LEFT: [0, -1], RIGHT: [0, 1] }[
-    escaping.direction
-  ];
-  const projection = (c: { row: number; col: number }) =>
-    c.row * dirVector[0] + c.col * dirVector[1];
-  const headKey = [...escaping.cells].sort((a, b) => projection(b) - projection(a))[0];
-  const tailKey = [...escaping.cells].sort((a, b) => projection(a) - projection(b))[0];
-
+  // `cells` is the arrow's path, tail first — the same info the grid uses.
+  const last = escaping.cells.length - 1;
   return (
     <Animated.View testID="escaping-arrow" pointerEvents="none" style={[StyleSheet.absoluteFill, { transform }]}>
-      {escaping.cells.map((cell) => (
+      {escaping.cells.map((cell, i) => (
         <View
           key={`${cell.row},${cell.col}`}
           style={{
@@ -153,33 +160,20 @@ function EscapingArrowOverlay({
             top: cell.row * size,
             width: size,
             height: size,
-            alignItems: 'center',
-            justifyContent: 'center',
           }}
         >
           <ArrowPiece
-            direction={escaping.direction}
+            direction={cell.direction}
+            incoming={i === 0 ? null : escaping.cells[i - 1].direction}
             color={escaping.color}
-            isHead={cell === headKey}
-            isTail={cell === tailKey}
+            isHead={i === last}
+            isTail={i === 0}
             size={size}
           />
         </View>
       ))}
     </Animated.View>
   );
-}
-
-/** Key of an arrow's trailing cell — the one furthest opposite its direction. */
-function keyOfTail(cells: Cell[], arrowId: number): string {
-  const arrowCells = cells.filter(
-    (c): c is ArrowCell => c instanceof ArrowCell && c.arrowId === arrowId,
-  );
-  const dir = arrowCells[0].direction;
-  const projection = (c: ArrowCell): number =>
-    c.position.row * dir.rowDelta + c.position.col * dir.colDelta;
-  const tail = arrowCells.reduce((min, c) => (projection(c) < projection(min) ? c : min));
-  return `${tail.position.row},${tail.position.col}`;
 }
 
 const styles = StyleSheet.create({
