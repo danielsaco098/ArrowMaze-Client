@@ -97,17 +97,33 @@ export class Board {
     return [...ids];
   }
 
-  /** The leading cell of an arrow (the one furthest along its pointing direction). */
-  headOfArrow(arrowId: number): Position {
+  /**
+   * The ordered path of an arrow, tail first, head last. Ordered by
+   * `segmentIndex`; straight legacy arrows without segment order fall back to
+   * ordering along their (shared) pointing direction.
+   */
+  pathOfArrow(arrowId: number): ArrowCell[] {
     const cells = this.arrowCellsOf(arrowId);
     if (cells.length === 0) {
       throw new UnknownArrowError(arrowId);
     }
+    if (cells.some((cell) => cell.segmentIndex > 0)) {
+      return [...cells].sort((a, b) => a.segmentIndex - b.segmentIndex);
+    }
     const direction = cells[0].direction;
     const projection = (p: Position): number => p.row * direction.rowDelta + p.col * direction.colDelta;
-    return cells.reduce((best, cell) =>
-      projection(cell.position) > projection(best.position) ? cell : best,
-    ).position;
+    return [...cells].sort((a, b) => projection(a.position) - projection(b.position));
+  }
+
+  /** The leading cell of an arrow: the last segment of its path. */
+  headOfArrow(arrowId: number): Position {
+    return this.headCellOfArrow(arrowId).position;
+  }
+
+  /** The head as a cell, so callers can also read its exit direction. */
+  headCellOfArrow(arrowId: number): ArrowCell {
+    const path = this.pathOfArrow(arrowId);
+    return path[path.length - 1];
   }
 
   /** Removes an entire arrow (all its cells become empty) when it escapes. */

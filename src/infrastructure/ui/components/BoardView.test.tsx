@@ -33,7 +33,12 @@ describe('BoardView', () => {
       <BoardView
         board={board}
         holes={new Set()}
-        escaping={{ arrowId: 9, color: '#FFD166', direction: 'RIGHT', cells: [{ row: 0, col: 0 }] }}
+        escaping={{
+          arrowId: 9,
+          color: '#FFD166',
+          direction: 'RIGHT',
+          cells: [{ row: 0, col: 0, direction: 'RIGHT' }],
+        }}
         onTapCell={() => {}}
       />,
     );

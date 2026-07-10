@@ -5,11 +5,12 @@ import { NotAnArrowError } from '../errors';
 
 /**
  * Pure domain service that decides whether the arrow at a given position can
- * slide off the board in the direction it points.
+ * slide off the board in the direction its HEAD points.
  *
- * It walks cell by cell from the arrow toward the edge: if every intermediate
- * cell is passable, the arrow escapes; if any solid cell blocks the way, it cannot.
- * Relies only on the polymorphic `isPassable()` (no knowledge of concrete cell types).
+ * It walks cell by cell from the head toward the edge: if every cell on that
+ * lane is passable, the arrow escapes. The arrow's OWN body never blocks it:
+ * a winding arrow may cross its head's lane, but as the arrow slides out each
+ * body segment vacates its cell before the head arrives (train-style motion).
  */
 export class PathTraversalService {
   canEscape(board: Board, position: Position): boolean {
@@ -18,15 +19,15 @@ export class PathTraversalService {
       throw new NotAnArrowError(position);
     }
 
-    // Walk from the arrow's leading cell (head) toward the edge. The arrow's own
-    // body cells are behind the head, so they never block its own path.
-    const head = board.headOfArrow(cell.arrowId);
-    let next = head.translate(cell.direction);
+    const head = board.headCellOfArrow(cell.arrowId);
+    let next = head.position.translate(head.direction);
     while (board.isWithinBounds(next)) {
-      if (!board.cellAt(next).isPassable()) {
+      const onLane = board.cellAt(next);
+      const isOwnBody = onLane instanceof ArrowCell && onLane.arrowId === cell.arrowId;
+      if (!onLane.isPassable() && !isOwnBody) {
         return false;
       }
-      next = next.translate(cell.direction);
+      next = next.translate(head.direction);
     }
     return true;
   }
@@ -41,12 +42,12 @@ export class PathTraversalService {
       throw new NotAnArrowError(position);
     }
 
-    const head = board.headOfArrow(cell.arrowId);
+    const head = board.headCellOfArrow(cell.arrowId);
     const path: Position[] = [];
-    let next = head.translate(cell.direction);
+    let next = head.position.translate(head.direction);
     while (board.isWithinBounds(next)) {
       path.push(next);
-      next = next.translate(cell.direction);
+      next = next.translate(head.direction);
     }
     path.push(next); // first off-board cell = the exit point
     return path;

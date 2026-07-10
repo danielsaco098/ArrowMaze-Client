@@ -19,8 +19,10 @@ export interface GameOutcome {
 export interface EscapingArrow {
   readonly arrowId: number;
   readonly color: string;
+  /** The head's exit direction — the way the whole arrow slides off. */
   readonly direction: DirectionName;
-  readonly cells: ReadonlyArray<{ row: number; col: number }>;
+  /** The arrow's path, tail first, with each segment's own direction. */
+  readonly cells: ReadonlyArray<{ row: number; col: number; direction: DirectionName }>;
 }
 
 const ESCAPE_ANIMATION_MS = 450;
@@ -126,14 +128,16 @@ export function useGame(levelId: number) {
         const tappedCell = board?.cellAt(position);
         let snapshot: EscapingArrow | null = null;
         if (board && tappedCell instanceof ArrowCell) {
+          const path = board.pathOfArrow(tappedCell.arrowId);
           snapshot = {
             arrowId: tappedCell.arrowId,
             color: tappedCell.color,
-            direction: tappedCell.direction.name,
-            cells: board
-              .cells()
-              .filter((c): c is ArrowCell => c instanceof ArrowCell && c.arrowId === tappedCell.arrowId)
-              .map((c) => ({ row: c.position.row, col: c.position.col })),
+            direction: path[path.length - 1].direction.name,
+            cells: path.map((c) => ({
+              row: c.position.row,
+              col: c.position.col,
+              direction: c.direction.name,
+            })),
           };
         }
 

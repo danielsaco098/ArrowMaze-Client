@@ -54,7 +54,13 @@ export class JsonCellFactory implements ICellFactory {
         // ungrouped arrow gets a unique derived id (length-1).
         const arrowId = spec.arrowId ?? deriveArrowId(position);
         const color = spec.color ?? arrowColorFor(arrowId);
-        return new ArrowCell(position, Direction.fromName(spec.direction), arrowId, color);
+        return new ArrowCell(
+          position,
+          Direction.fromName(spec.direction),
+          arrowId,
+          color,
+          spec.segmentIndex ?? 0,
+        );
       }
       case 'WALL':
         return new WallCell(position);

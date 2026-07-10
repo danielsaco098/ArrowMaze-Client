@@ -58,18 +58,44 @@ const WALL = -1;
 const RESERVED = -2;
 
 /**
- * Constructive level generator. It fills the board with arrows of varying
- * lengths such that the result is **always solvable**:
+ * Constructive level generator. It fills the board with winding, snake-like
+ * arrows such that the result is **always solvable**:
  *
  * Each arrow is placed only if the lane from its head to the board edge is
  * currently empty. Placing arrows this way means the reverse order is a valid
- * solve (each arrow's lane is clear of the arrows that outlive it), so the board
- * can always be cleared. Walls are scattered FIRST and never move, so a lane
+ * solve (each arrow's lane is clear of the arrows that outlive it — and an
+ * arrow's own body never blocks it, because the body vacates cell by cell as
+ * the arrow slides out). Walls are scattered FIRST and never move, so a lane
  * that was wall-free at placement stays wall-free — solvability is preserved.
  * A seeded PRNG makes every level deterministic.
+ *
+ * Bodies grow BACKWARDS from the head as a self-avoiding random walk with a
+ * bias toward turning, which produces the long curved arrows of the original
+ * game. Each emitted cell carries its own direction (pointing to the next
+ * segment) and a `segmentIndex` (0 = tail) so the path order is explicit.
  */
 export function generateLevel(config: LevelConfig): LevelData {
-  const { rows, cols, seed, maxLength } = config;
+  // Winding fills vary: a given seed may leave no free cell on any exit lane
+  // for the requested stars, or fill the board too loosely. Deterministically
+  // retry with derived seeds until the level meets its own config; every
+  // attempt is solvable by construction, so this only tunes stars/density.
+  const wanted = Math.max(0, config.collectibles ?? 0);
+  let best: LevelData | null = null;
+  for (let attempt = 0; attempt < 25; attempt += 1) {
+    const candidate = generateOnce(config, config.seed + attempt * 7919);
+    const stars = candidate.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
+    const fill =
+      candidate.cells.filter((c) => c.kind !== 'EMPTY').length / (config.rows * config.cols);
+    if (stars >= wanted && fill >= 0.8) {
+      return candidate;
+    }
+    best = best ?? candidate;
+  }
+  return best!;
+}
+
+function generateOnce(config: LevelConfig, seed: number): LevelData {
+  const { rows, cols, maxLength } = config;
   const rand = createRng(seed);
   const grid: (number | null)[][] = Array.from({ length: rows }, () => Array<number | null>(cols).fill(null));
   const cells: CellData[] = [];
@@ -131,24 +157,56 @@ export function generateLevel(config: LevelConfig): LevelData {
     return n;
   };
 
-  // Place an arrow with its head at (hr, hc), body extending backwards (opposite
-  // the pointing direction) over empty cells, up to a random length.
+  // Heads are recorded as arrows are placed (used to pick sweepable star spots).
+  const heads: Array<{ r: number; c: number; dir: Dir }> = [];
+
+  // Place an arrow with its head at (hr, hc) exiting toward `dir`. The body
+  // grows BACKWARDS from the head as a self-avoiding walk over empty cells,
+  // preferring to turn, so arrows wind across the board instead of lying in
+  // straight bars. Each segment's direction points to the next segment.
   const place = (hr: number, hc: number, dir: Dir): void => {
-    const body: Array<[number, number]> = [[hr, hc]];
-    let r = hr - dir.dr;
-    let c = hc - dir.dc;
-    while (body.length < maxLength && isEmpty(r, c)) {
-      body.push([r, c]);
-      r -= dir.dr;
-      c -= dir.dc;
+    // path is head-first while growing; segment i's direction points to i-1.
+    const path: Array<{ r: number; c: number; dir: Dir }> = [{ r: hr, c: hc, dir }];
+    grid[hr][hc] = 0; // temporarily claim cells so the walk is self-avoiding
+    // Favour long arrows: best of two rolls, at least 1.
+    const target = Math.max(
+      1 + Math.floor(rand() * maxLength),
+      1 + Math.floor(rand() * maxLength),
+    );
+    while (path.length < target) {
+      const tail = path[path.length - 1];
+      // The previous segment sits on a free neighbour and points INTO the tail.
+      const options = DIRS.map((d) => ({
+        r: tail.r - d.dr,
+        c: tail.c - d.dc,
+        dir: d,
+      })).filter((o) => isEmpty(o.r, o.c));
+      if (options.length === 0) {
+        break;
+      }
+      const turning = options.filter((o) => o.dir.name !== tail.dir.name);
+      const pool = turning.length > 0 && rand() < 0.7 ? turning : options;
+      const next = pool[Math.floor(rand() * pool.length)];
+      grid[next.r][next.c] = 0;
+      path.push(next);
     }
-    const length = 1 + Math.floor(rand() * body.length);
+
     const id = nextId;
     nextId += 1;
-    for (const [br, bc] of body.slice(0, length)) {
-      grid[br][bc] = id;
-      cells.push({ row: br, col: bc, kind: 'ARROW', direction: dir.name, arrowId: id });
+    // path[0] is the head: highest segmentIndex; the last grown cell is the tail.
+    for (let i = 0; i < path.length; i += 1) {
+      const { r, c, dir: d } = path[i];
+      grid[r][c] = id;
+      cells.push({
+        row: r,
+        col: c,
+        kind: 'ARROW',
+        direction: d.name,
+        arrowId: id,
+        segmentIndex: path.length - 1 - i,
+      });
     }
+    heads.push({ r: hr, c: hc, dir });
   };
 
   let progressed = true;
@@ -180,18 +238,8 @@ export function generateLevel(config: LevelConfig): LevelData {
   // stars are guaranteed to be sweepable during a full solve. Unused spots
   // simply stay empty.
   if (requestedStars > 0) {
-    const heads = new Map<number, { r: number; c: number; dir: Dir }>();
-    for (const cell of cells) {
-      if (cell.kind !== 'ARROW' || cell.arrowId === undefined || !cell.direction) continue;
-      const dir = DIRS.find((d) => d.name === cell.direction)!;
-      const current = heads.get(cell.arrowId);
-      // The head is the cell furthest along the pointing direction.
-      if (!current || cell.row * dir.dr + cell.col * dir.dc > current.r * dir.dr + current.c * dir.dc) {
-        heads.set(cell.arrowId, { r: cell.row, c: cell.col, dir });
-      }
-    }
     const onLane = new Set<string>();
-    for (const { r: hr, c: hc, dir } of heads.values()) {
+    for (const { r: hr, c: hc, dir } of heads) {
       let r = hr + dir.dr;
       let c = hc + dir.dc;
       while (inBounds(r, c)) {

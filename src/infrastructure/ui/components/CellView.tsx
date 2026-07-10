@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import type { Cell } from '../../../domain/entities/Cell';
 import { ArrowCell } from '../../../domain/entities/ArrowCell';
 import type { Position } from '../../../domain/value-objects/Position';
+import type { DirectionName } from '../../../domain/value-objects/Direction';
 import { ArrowPiece } from './ArrowPiece';
 import { theme } from '../theme';
 
@@ -13,6 +14,8 @@ interface Props {
   isHead: boolean;
   /** True when this cell is the trailing cell (tail) of its arrow. */
   isTail: boolean;
+  /** Direction of the previous path segment (null at the tail / non-arrows). */
+  incoming?: DirectionName | null;
   /** True when this position started the level empty/blocked (a permanent hole). */
   isHole: boolean;
   onPress: (position: Position) => void;
@@ -25,7 +28,15 @@ interface Props {
  * solid black; a cell an arrow has slid out of stays transparent, blending into
  * the background. Only arrows are interactive.
  */
-export function CellView({ cell, size, isHead, isTail, isHole, onPress }: Props): React.JSX.Element {
+export function CellView({
+  cell,
+  size,
+  isHead,
+  isTail,
+  incoming = null,
+  isHole,
+  onPress,
+}: Props): React.JSX.Element {
   const isArrow = cell instanceof ArrowCell;
   const isWall = cell.kind === 'WALL';
   const backgroundColor = isArrow
@@ -35,7 +46,7 @@ export function CellView({ cell, size, isHead, isTail, isHole, onPress }: Props)
       : cell.kind === 'EXIT'
         ? theme.colors.exit
         : isHole
-          ? theme.colors.hole // a permanent black hole
+          ? 'rgba(0,0,0,0.28)' // a permanent gap: subtly recessed, not a black blob
           : 'transparent'; // a space an arrow has left behind
 
   return (
@@ -49,6 +60,7 @@ export function CellView({ cell, size, isHead, isTail, isHole, onPress }: Props)
       {isArrow ? (
         <ArrowPiece
           direction={(cell as ArrowCell).direction.name}
+          incoming={incoming}
           color={(cell as ArrowCell).color}
           isHead={isHead}
           isTail={isTail}
