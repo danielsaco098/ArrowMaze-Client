@@ -20,6 +20,7 @@ import {
   GetOverallLeaderboardUseCase,
   GetOverallLeaderboardInput,
 } from '../../application/use-cases/GetOverallLeaderboardUseCase';
+import { PullRemoteProgressUseCase } from '../../application/use-cases/PullRemoteProgressUseCase';
 import { LoggingUseCaseDecorator } from '../../application/decorators/LoggingUseCaseDecorator';
 import { MetricsUseCaseDecorator } from '../../application/decorators/MetricsUseCaseDecorator';
 import { ExceptionHandlingUseCaseDecorator } from '../../application/decorators/ExceptionHandlingUseCaseDecorator';
@@ -62,6 +63,7 @@ export interface AppContainer {
   readonly getProgress: UseCase<void, PlayerProgress>;
   /** Auth-required use cases, guarded by the authentication aspect. */
   readonly syncProgress: UseCase<SyncProgressInput, RemoteProgressRecord[]>;
+  readonly pullProgress: UseCase<void, PlayerProgress>;
   readonly getLeaderboard: UseCase<GetLeaderboardInput, LeaderboardEntry[]>;
   readonly getOverallLeaderboard: UseCase<GetOverallLeaderboardInput, OverallLeaderboardEntry[]>;
   /** Backend API clients (online features: auth, leaderboard, progress sync). */
@@ -88,14 +90,16 @@ export function createContainer(): AppContainer {
   // `new RestLevelRepository(http)` to load them from the backend instead.
   const levels = new BundledLevelRepository(BUNDLED_LEVELS);
   const storage = new AsyncStorageKeyValue();
-  const progress = new LocalProgressRepository(storage);
+  const session = new SessionStore(storage);
+  // Progress is stored per signed-in user (guest gets its own bucket), so one
+  // player's unlocked levels never show up for another account on the device.
+  const progress = new LocalProgressRepository(storage, session);
   const scoring = new StandardScoringStrategy();
 
-  // Backend HTTP clients (online features) and the persisted session.
+  // Backend HTTP clients (online features).
   const http = new FetchHttpClient(apiConfig.baseUrl);
   const leaderboardApi = new RestLeaderboardApi(http);
   const progressApi = new RestProgressApi(http);
-  const session = new SessionStore(storage);
 
   // Audio reacts to game events through the bus (Observer), gated by the
   // AudioManager singleton's mute flag.
@@ -133,6 +137,13 @@ export function createContainer(): AppContainer {
     syncProgress: withAspects(
       requireSession(new SyncProgressUseCase(progressApi, session), 'SyncProgress'),
       'SyncProgress',
+    ),
+    pullProgress: withAspects(
+      requireSession(
+        new PullRemoteProgressUseCase(progressApi, progress, session),
+        'PullRemoteProgress',
+      ),
+      'PullRemoteProgress',
     ),
     getLeaderboard: withAspects(
       requireSession(

@@ -57,6 +57,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }): Re
       try {
         const result = await action(credentials);
         await container.session.save(result);
+        // Restore this account's progress from the backend into its local
+        // per-user store, so the levels it already beat unlock on this device.
+        // Best-effort: a failure here must never block the sign-in.
+        await container.pullProgress.execute().catch(() => undefined);
         setSession(result);
         return true;
       } catch (e) {

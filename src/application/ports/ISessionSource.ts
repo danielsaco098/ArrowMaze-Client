@@ -7,4 +7,6 @@
 export interface ISessionSource {
   /** The active access token, or `null` when nobody is signed in. */
   getToken(): Promise<string | null>;
+  /** The signed-in user's id, or `null` when playing as a guest. */
+  getUserId(): Promise<string | null>;
 }

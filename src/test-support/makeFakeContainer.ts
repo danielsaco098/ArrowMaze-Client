@@ -14,6 +14,7 @@ export function makeFakeContainer(overrides: Partial<AppContainer> = {}): AppCon
     recordResult: { execute: jest.fn() },
     getProgress: { execute: jest.fn() },
     syncProgress: { execute: jest.fn().mockResolvedValue([]) },
+    pullProgress: { execute: jest.fn().mockResolvedValue(undefined) },
     getLeaderboard: { execute: jest.fn().mockResolvedValue([]) },
     getOverallLeaderboard: { execute: jest.fn().mockResolvedValue([]) },
     authApi: { login: jest.fn(), register: jest.fn() },
@@ -27,6 +28,7 @@ export function makeFakeContainer(overrides: Partial<AppContainer> = {}): AppCon
       save: jest.fn().mockResolvedValue(undefined),
       clear: jest.fn().mockResolvedValue(undefined),
       getToken: jest.fn().mockResolvedValue(null),
+      getUserId: jest.fn().mockResolvedValue(null),
     },
   } as unknown as AppContainer;
 

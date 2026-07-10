@@ -10,6 +10,7 @@ const apiMock = (): jest.Mocked<IProgressApi> => ({
 
 const sessionWith = (token: string | null): ISessionSource => ({
   getToken: jest.fn().mockResolvedValue(token),
+  getUserId: jest.fn().mockResolvedValue(token === null ? null : 'user-1'),
 });
 
 describe('SyncProgressUseCase', () => {

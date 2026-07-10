@@ -18,6 +18,10 @@ export class SessionStore implements ISessionSource {
     return (await this.load())?.accessToken ?? null;
   }
 
+  async getUserId(): Promise<string | null> {
+    return (await this.load())?.user.id ?? null;
+  }
+
   async load(): Promise<AuthSession | null> {
     const raw = await this.storage.getItem(SessionStore.STORAGE_KEY);
     if (!raw) {
