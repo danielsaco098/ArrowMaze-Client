@@ -23,12 +23,12 @@ const OPPOSITE: Record<DirectionName, DirectionName> = {
 };
 
 /**
- * Renders one cell's slice of a winding neon arrow. Each slice is built from
- * "arms" — thin bars running from the cell's centre to one of its edges — so a
- * straight slice is two collinear arms, and a turn (the previous segment came
- * in from a perpendicular side) is two arms meeting at the centre in an elbow.
- * The tail starts with a rounded cap at the centre and the head ends in a
- * triangular arrowhead, so length and exit direction stay unambiguous.
+ * Renders one cell's slice of a winding neon arrow. Straight slices are a
+ * thin full-length bar; turns are two short arms joined by a corner piece
+ * whose outer edge is a quarter-round, so the line CURVES instead of boxing
+ * around 90° corners. The tail starts with a rounded cap and the head ends in
+ * a triangular arrowhead placed after its final bend, so length and exit
+ * direction stay unambiguous.
  */
 export function ArrowPiece({
   direction,
@@ -38,29 +38,109 @@ export function ArrowPiece({
   isTail,
   size,
 }: Props): React.JSX.Element {
-  const t = Math.max(3, Math.round(size * 0.17));
+  // Stroke metrics are CAPPED: on big cells the line keeps its size and the
+  // extra room becomes visual separation between different arrows.
+  const t = Math.min(8, Math.max(3, Math.round(size * 0.17)));
   const label = `arrow-${direction.toLowerCase()}`;
   // The line enters through the edge shared with the previous segment.
   const entrySide = incoming ? OPPOSITE[incoming] : null;
+  const turns = entrySide !== null && entrySide !== OPPOSITE[direction];
+
+  // Centreline radius of a bend: the arc the line follows through a turn.
+  const bend = t;
 
   if (!isHead) {
+    if (!turns) {
+      // Straight slice: one continuous bar (tail rounds its trailing end).
+      return (
+        <View accessibilityLabel={label} style={styles.fill}>
+          {entrySide && <View style={arm(entrySide, size, t, color)} />}
+          <View style={[arm(direction, size, t, color), isTail && roundedCap(direction, t)]} />
+        </View>
+      );
+    }
     return (
       <View accessibilityLabel={label} style={styles.fill}>
-        {entrySide && <View style={arm(entrySide, size, t, color)} />}
-        <View style={[arm(direction, size, t, color), isTail && roundedCap(direction, t)]} />
+        <View style={shortArm(entrySide!, size, t, bend, color)} />
+        <QuarterRing a={entrySide!} b={direction} size={size} t={t} bend={bend} color={color} />
+        <View style={shortArm(direction, size, t, bend, color)} />
       </View>
     );
   }
 
-  const headLen = Math.round(size * 0.44);
-  const headHalf = Math.max(t, Math.round(size * 0.23));
+  const headLen = Math.min(20, Math.round(size * 0.44));
+  const headHalf = Math.min(11, Math.max(t, Math.round(size * 0.23)));
   // A single-cell arrow still shows a short shaft behind the head.
   const backSide = entrySide ?? OPPOSITE[direction];
   return (
     <View accessibilityLabel={label} style={styles.fill}>
-      <View style={[arm(backSide, size, t, color), isTail && roundedCap(backSide, t)]} />
-      <View style={shaftToHead(direction, size, t, headLen, color)} />
+      {turns ? (
+        <>
+          <View style={shortArm(backSide, size, t, bend, color)} />
+          <QuarterRing a={backSide} b={direction} size={size} t={t} bend={bend} color={color} />
+          <View style={headStub(direction, size, t, bend, headLen, color)} />
+        </>
+      ) : (
+        <>
+          <View style={[arm(backSide, size, t, color), isTail && roundedCap(backSide, t)]} />
+          <View style={shaftToHead(direction, size, t, headLen, color)} />
+        </>
+      )}
       <View style={arrowhead(direction, size, headLen, headHalf, color)} />
+    </View>
+  );
+}
+
+/**
+ * A true curved joint: a quarter of a ring (tube of thickness `t` following a
+ * circular arc of centreline radius `bend`) clipped to the bend's quadrant,
+ * connecting the arm on side `a` to the arm on side `b`.
+ */
+function QuarterRing({
+  a,
+  b,
+  size,
+  t,
+  bend,
+  color,
+}: {
+  a: DirectionName;
+  b: DirectionName;
+  size: number;
+  t: number;
+  bend: number;
+  color: string;
+}): React.JSX.Element {
+  const c = size / 2;
+  const R = bend + t / 2; // outer radius of the tube
+  const sides = new Set([a, b]);
+  // Centre of curvature: offset from the cell centre away from both arms.
+  const ox = sides.has('LEFT') ? c - bend : c + bend;
+  const oy = sides.has('UP') ? c - bend : c + bend;
+  // The arc bulges from the centre of curvature toward the cell centre.
+  const dx = sides.has('LEFT') ? 1 : -1;
+  const dy = sides.has('UP') ? 1 : -1;
+  const clip: ViewStyle = {
+    position: 'absolute',
+    left: dx > 0 ? ox : ox - R,
+    top: dy > 0 ? oy : oy - R,
+    width: R,
+    height: R,
+    overflow: 'hidden',
+  };
+  const ring: ViewStyle = {
+    position: 'absolute',
+    left: ox - R - (clip.left as number),
+    top: oy - R - (clip.top as number),
+    width: 2 * R,
+    height: 2 * R,
+    borderRadius: R,
+    borderWidth: t,
+    borderColor: color,
+  };
+  return (
+    <View style={clip} pointerEvents="none">
+      <View style={ring} />
     </View>
   );
 }
@@ -81,6 +161,60 @@ function arm(side: DirectionName, size: number, t: number, color: string): ViewS
     case 'DOWN':
     default:
       return { ...base, top: near, left: near, width: t, height: span };
+  }
+}
+
+/** Like {@link arm} but stopping where the curved joint begins. */
+function shortArm(
+  side: DirectionName,
+  size: number,
+  t: number,
+  bend: number,
+  color: string,
+): ViewStyle {
+  const c = size / 2;
+  const near = c - t / 2;
+  const len = c - bend + 1; // +1 overlaps the ring so no hairline gap shows
+  const base: ViewStyle = { position: 'absolute', backgroundColor: color };
+  switch (side) {
+    case 'LEFT':
+      return { ...base, left: 0, top: near, width: len, height: t };
+    case 'RIGHT':
+      return { ...base, left: size - len, top: near, width: len, height: t };
+    case 'UP':
+      return { ...base, top: 0, left: near, width: t, height: len };
+    case 'DOWN':
+    default:
+      return { ...base, top: size - len, left: near, width: t, height: len };
+  }
+}
+
+/** The bar between a turning head's curve and its arrowhead base. */
+function headStub(
+  direction: DirectionName,
+  size: number,
+  t: number,
+  bend: number,
+  headLen: number,
+  color: string,
+): ViewStyle {
+  const c = size / 2;
+  const near = c - t / 2;
+  // The stub spans from the curve's end (± the bend radius, overlapping the
+  // ring by 1px) to the arrowhead's base.
+  const fwd = Math.max(0, size - headLen - (c + bend - 1));
+  const back = Math.max(0, c - bend + 1 - headLen);
+  const base: ViewStyle = { position: 'absolute', backgroundColor: color };
+  switch (direction) {
+    case 'RIGHT':
+      return { ...base, left: c + bend - 1, top: near, width: fwd, height: t };
+    case 'LEFT':
+      return { ...base, left: headLen, top: near, width: back, height: t };
+    case 'DOWN':
+      return { ...base, top: c + bend - 1, left: near, width: t, height: fwd };
+    case 'UP':
+    default:
+      return { ...base, top: headLen, left: near, width: t, height: back };
   }
 }
 
