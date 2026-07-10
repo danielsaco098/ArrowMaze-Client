@@ -112,8 +112,11 @@ export function BoardView({
 }
 
 /**
- * Overlay copy of an arrow that just escaped: drawn at its former grid
- * position, then translated along its exit direction until it leaves the screen.
+ * Overlay copy of an arrow that just escaped. Instead of sliding the whole
+ * shape rigidly, every segment travels along the snake's own path and then
+ * straight out through the head's exit lane (train-style): segment i follows
+ * the same waypoints, offset by its position in the path, all driven by one
+ * shared progress value with per-segment multi-stop interpolation.
  */
 function EscapingArrowOverlay({
   escaping,
@@ -122,56 +125,79 @@ function EscapingArrowOverlay({
   escaping: EscapingArrow;
   size: number;
 }): React.JSX.Element {
-  const slide = useRef(new Animated.Value(0)).current;
+  const progress = useRef(new Animated.Value(0)).current;
+
+  const cells = escaping.cells;
+  const n = cells.length;
+  // Waypoints in grid coords: the path itself, then the straight exit lane
+  // continued far enough that even the tail clears the screen.
+  const travel = Math.max(Dimensions.get('window').width, Dimensions.get('window').height);
+  const extra = Math.ceil(travel / size) + 2;
+  const step = { UP: [-1, 0], DOWN: [1, 0], LEFT: [0, -1], RIGHT: [0, 1] }[escaping.direction];
+  const head = cells[n - 1];
+  const waypoints: Array<{ row: number; col: number }> = cells.map((c) => ({
+    row: c.row,
+    col: c.col,
+  }));
+  for (let k = 1; k <= extra; k += 1) {
+    waypoints.push({ row: head.row + step[0] * k, col: head.col + step[1] * k });
+  }
+  // Steps until the TAIL (segment 0) reaches the final waypoint.
+  const steps = waypoints.length - 1;
 
   useEffect(() => {
-    slide.setValue(0);
-    Animated.timing(slide, {
-      toValue: 1,
-      duration: 420,
+    progress.setValue(0);
+    Animated.timing(progress, {
+      toValue: steps,
+      duration: 500,
       easing: Easing.in(Easing.quad),
       useNativeDriver: true,
     }).start();
-  }, [escaping, slide]);
+  }, [escaping, progress, steps]);
 
-  // Far enough to clear any screen edge from any board position.
-  const travel = Math.max(Dimensions.get('window').width, Dimensions.get('window').height);
-  const delta = {
-    UP: { x: 0, y: -travel },
-    DOWN: { x: 0, y: travel },
-    LEFT: { x: -travel, y: 0 },
-    RIGHT: { x: travel, y: 0 },
-  }[escaping.direction];
-  const transform = [
-    { translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [0, delta.x] }) },
-    { translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [0, delta.y] }) },
-  ];
-
-  // `cells` is the arrow's path, tail first — the same info the grid uses.
-  const last = escaping.cells.length - 1;
+  const inputRange = Array.from({ length: steps + 1 }, (_, m) => m);
   return (
-    <Animated.View testID="escaping-arrow" pointerEvents="none" style={[StyleSheet.absoluteFill, { transform }]}>
-      {escaping.cells.map((cell, i) => (
-        <View
-          key={`${cell.row},${cell.col}`}
-          style={{
-            position: 'absolute',
-            left: cell.col * size,
-            top: cell.row * size,
-            width: size,
-            height: size,
-          }}
-        >
-          <ArrowPiece
-            direction={cell.direction}
-            incoming={i === 0 ? null : escaping.cells[i - 1].direction}
-            color={escaping.color}
-            isHead={i === last}
-            isTail={i === 0}
-            size={size}
-          />
-        </View>
-      ))}
+    <Animated.View testID="escaping-arrow" pointerEvents="none" style={StyleSheet.absoluteFill}>
+      {cells.map((cell, i) => {
+        // After m steps, segment i sits at waypoint i+m (clamped at the end).
+        const at = (m: number) => waypoints[Math.min(i + m, waypoints.length - 1)];
+        const transform = [
+          {
+            translateX: progress.interpolate({
+              inputRange,
+              outputRange: inputRange.map((m) => (at(m).col - cell.col) * size),
+            }),
+          },
+          {
+            translateY: progress.interpolate({
+              inputRange,
+              outputRange: inputRange.map((m) => (at(m).row - cell.row) * size),
+            }),
+          },
+        ];
+        return (
+          <Animated.View
+            key={`${cell.row},${cell.col}`}
+            style={{
+              position: 'absolute',
+              left: cell.col * size,
+              top: cell.row * size,
+              width: size,
+              height: size,
+              transform,
+            }}
+          >
+            <ArrowPiece
+              direction={cell.direction}
+              incoming={i === 0 ? null : cells[i - 1].direction}
+              color={escaping.color}
+              isHead={i === n - 1}
+              isTail={i === 0}
+              size={size}
+            />
+          </Animated.View>
+        );
+      })}
     </Animated.View>
   );
 }

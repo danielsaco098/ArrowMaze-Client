@@ -38,7 +38,7 @@ export function ArrowPiece({
   isTail,
   size,
 }: Props): React.JSX.Element {
-  const t = Math.max(3, Math.round(size * 0.16));
+  const t = Math.max(4, Math.round(size * 0.24));
   const label = `arrow-${direction.toLowerCase()}`;
   // The line enters through the edge shared with the previous segment.
   const entrySide = incoming ? OPPOSITE[incoming] : null;
@@ -52,8 +52,8 @@ export function ArrowPiece({
     );
   }
 
-  const headLen = Math.round(size * 0.42);
-  const headHalf = Math.max(t, Math.round(size * 0.26));
+  const headLen = Math.round(size * 0.5);
+  const headHalf = Math.max(t, Math.round(size * 0.34));
   // A single-cell arrow still shows a short shaft behind the head.
   const backSide = entrySide ?? OPPOSITE[direction];
   return (

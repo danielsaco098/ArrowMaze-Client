@@ -17,7 +17,7 @@ export class MalformedCellSpecError extends Error {
 }
 
 /** Distinct colors cycled across arrows so each one is visually distinguishable. */
-const ARROW_PALETTE = [
+export const ARROW_PALETTE = [
   '#6FE3C4',
   '#FFD166',
   '#FF6B6B',
