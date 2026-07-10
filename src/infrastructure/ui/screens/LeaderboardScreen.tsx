@@ -24,16 +24,34 @@ type State =
   | { status: 'unauthenticated' }
   | { status: 'ready'; rows: Row[] };
 
-export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.Element {
+/**
+ * Global rankings. Opened from a level (victory overlay) it starts on that
+ * level's ranking; opened without one (home screen) it starts on the overall
+ * totals. The level tab carries a picker so any level's scores can be browsed.
+ */
+export function LeaderboardScreen({ levelId }: { levelId?: number }): React.JSX.Element {
   const { navigate } = useNavigation();
   const { t } = useTranslation();
   const container = useContainer();
   const { user } = useSession();
-  const [scope, setScope] = useState<Scope>('level');
+  const [scope, setScope] = useState<Scope>(levelId === undefined ? 'total' : 'level');
+  const [selectedLevel, setSelectedLevel] = useState<number>(levelId ?? 1);
+  const [levelIds, setLevelIds] = useState<number[]>([]);
   const [state, setState] = useState<State>({ status: 'loading' });
 
-  // Refetches whenever the selected scope changes. Both use cases are
-  // auth-required: the authentication aspect rejects with
+  // All level ids, for the picker on the level tab.
+  useEffect(() => {
+    let active = true;
+    void container.levels.getAll().then((all) => {
+      if (active) setLevelIds(all.map((l) => l.id));
+    });
+    return () => {
+      active = false;
+    };
+  }, [container]);
+
+  // Refetches whenever the scope or the picked level changes. Both use cases
+  // are auth-required: the authentication aspect rejects with
   // NotAuthenticatedError when nobody is signed in.
   useEffect(() => {
     let active = true;
@@ -41,7 +59,7 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
     const request: Promise<Row[]> =
       scope === 'level'
         ? container.getLeaderboard
-            .execute({ levelId })
+            .execute({ levelId: selectedLevel })
             .then((entries) =>
               entries.map((e) => ({ username: e.username, points: e.score })),
             )
@@ -66,7 +84,7 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
     return () => {
       active = false;
     };
-  }, [container, levelId, scope, t]);
+  }, [container, selectedLevel, scope, t]);
 
   return (
     <View style={styles.container}>
@@ -74,12 +92,14 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
         <Pressable
           accessibilityRole="button"
           testID="back-button"
-          onPress={() => navigate({ name: 'levelSelect' })}
+          onPress={() => navigate(levelId === undefined ? { name: 'home' } : { name: 'levelSelect' })}
         >
           <Text style={styles.back}>{t('common.back')}</Text>
         </Pressable>
         <Text style={styles.title}>
-          {scope === 'level' ? t('leaderboard.title', { level: levelId }) : t('leaderboard.titleTotal')}
+          {scope === 'level'
+            ? t('leaderboard.title', { level: selectedLevel })
+            : t('leaderboard.titleTotal')}
         </Text>
         <View style={styles.spacer} />
       </View>
@@ -87,7 +107,7 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
       <View style={styles.tabs}>
         <ScopeTab
           testID="tab-level"
-          label={t('leaderboard.tabLevel', { level: levelId })}
+          label={t('leaderboard.tabLevel', { level: selectedLevel })}
           active={scope === 'level'}
           onPress={() => setScope('level')}
         />
@@ -98,6 +118,34 @@ export function LeaderboardScreen({ levelId }: { levelId: number }): React.JSX.E
           onPress={() => setScope('total')}
         />
       </View>
+
+      {scope === 'level' && levelIds.length > 0 && (
+        <ScrollView
+          horizontal
+          testID="level-picker"
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.picker}
+          style={styles.pickerBar}
+        >
+          {levelIds.map((id) => {
+            const active = id === selectedLevel;
+            return (
+              <Pressable
+                key={id}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                testID={`pick-level-${id}`}
+                onPress={() => setSelectedLevel(id)}
+                style={[styles.levelChip, active && styles.levelChipActive]}
+              >
+                <Text style={[styles.levelChipLabel, active && styles.levelChipLabelActive]}>
+                  {id}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {state.status === 'loading' && <ActivityIndicator testID="loading" color={theme.colors.primary} />}
       {state.status === 'error' && <Text style={styles.message}>{t('leaderboard.error')}</Text>}
@@ -187,6 +235,19 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: theme.colors.primary },
   tabLabel: { color: theme.colors.muted, fontSize: 14, fontWeight: '700' },
   tabLabelActive: { color: theme.colors.primaryText },
+  pickerBar: { flexGrow: 0, marginTop: theme.spacing(2) },
+  picker: { gap: theme.spacing(1), paddingHorizontal: theme.spacing(1) },
+  levelChip: {
+    minWidth: 40,
+    paddingVertical: theme.spacing(0.75),
+    paddingHorizontal: theme.spacing(1.25),
+    borderRadius: theme.radius,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+  },
+  levelChipActive: { backgroundColor: theme.colors.primary },
+  levelChipLabel: { color: theme.colors.muted, fontSize: 14, fontWeight: '800' },
+  levelChipLabelActive: { color: theme.colors.primaryText },
   message: { color: theme.colors.muted, textAlign: 'center', marginTop: theme.spacing(4), paddingHorizontal: theme.spacing(2) },
   signInAction: { alignItems: 'center', marginTop: theme.spacing(2) },
   list: { paddingVertical: theme.spacing(2), gap: theme.spacing(1) },

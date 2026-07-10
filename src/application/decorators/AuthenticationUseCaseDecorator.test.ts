@@ -5,6 +5,7 @@ import type { ISessionSource } from '../ports/ISessionSource';
 
 const sessionWith = (token: string | null): ISessionSource => ({
   getToken: jest.fn().mockResolvedValue(token),
+  getUserId: jest.fn().mockResolvedValue(token === null ? null : 'user-1'),
 });
 
 describe('AuthenticationUseCaseDecorator', () => {

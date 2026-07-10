@@ -47,6 +47,14 @@ describe('HomeScreen', () => {
     expect(getByTestId('route').props.children).toBe('levelSelect');
   });
 
+  it('should_navigate_to_the_leaderboard_when_its_button_is_pressed', async () => {
+    const { getByTestId } = await renderHome(<RouteProbe />);
+
+    await fireEvent.press(getByTestId('home-leaderboard-button'));
+
+    expect(getByTestId('route').props.children).toBe('leaderboard');
+  });
+
   it('should_switch_the_interface_language_when_the_toggle_is_pressed', async () => {
     const { getByText, getByTestId } = await renderHome();
     expect(getByText('Play')).toBeTruthy();

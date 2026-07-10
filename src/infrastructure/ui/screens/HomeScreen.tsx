@@ -54,6 +54,12 @@ export function HomeScreen(): React.JSX.Element {
             label={t('home.play')}
             onPress={() => navigate({ name: 'levelSelect' })}
           />
+          <PrimaryButton
+            testID="home-leaderboard-button"
+            label={t('leaderboard.open')}
+            variant="ghost"
+            onPress={() => navigate({ name: 'leaderboard' })}
+          />
         </View>
 
         <Text style={styles.hint}>{t('home.hint')}</Text>
@@ -80,6 +86,6 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing(1),
     textAlign: 'center',
   },
-  actions: { marginTop: theme.spacing(5) },
+  actions: { marginTop: theme.spacing(5), gap: theme.spacing(1.5), alignItems: 'center' },
   hint: { color: theme.colors.muted, fontSize: 13, marginTop: theme.spacing(3) },
 });

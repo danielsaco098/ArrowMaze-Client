@@ -6,7 +6,9 @@ export type Route =
   | { readonly name: 'levelSelect' }
   | { readonly name: 'game'; readonly levelId: number }
   | { readonly name: 'login' }
-  | { readonly name: 'leaderboard'; readonly levelId: number };
+  // Opened from a level it shows that level's ranking; without one (from the
+  // home screen) it opens on the overall totals.
+  | { readonly name: 'leaderboard'; readonly levelId?: number };
 
 interface NavigationApi {
   readonly route: Route;
