@@ -9,7 +9,8 @@ import type { EscapingArrow } from '../hooks/useGame';
 import { CellView } from './CellView';
 import { ArrowPiece } from './ArrowPiece';
 
-const MAX_BOARD_WIDTH = 320;
+const MAX_BOARD_WIDTH = 480;
+const SCREEN_MARGIN = 24;
 
 /** Per-cell path info: how the line enters the cell and whether it ends there. */
 interface SegmentInfo {
@@ -38,7 +39,10 @@ export function BoardView({
   onTapCell,
 }: Props): React.JSX.Element {
   // Cells sit flush (no margin) so each arrow reads as one continuous line.
-  const size = Math.floor(MAX_BOARD_WIDTH / board.cols);
+  // The board takes as much of the screen as it can (arrow strokes are capped,
+  // so bigger cells mean more breathing room BETWEEN arrows, not fatter lines).
+  const boardWidth = Math.min(Dimensions.get('window').width - SCREEN_MARGIN, MAX_BOARD_WIDTH);
+  const size = Math.floor(boardWidth / board.cols);
   const cells = board.cells();
   const rows: Cell[][] = [];
   for (let r = 0; r < board.rows; r += 1) {
