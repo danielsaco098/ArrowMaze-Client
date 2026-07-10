@@ -36,13 +36,21 @@ export function App(): React.JSX.Element {
   );
 }
 
+// Android's notification-shade swipe zone reaches BELOW the status bar, so
+// interactive rows need extra clearance past `StatusBar.currentHeight` or
+// their taps are still swallowed by the system gesture.
+const ANDROID_GESTURE_CLEARANCE = 20;
+
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: theme.colors.background,
     // RN's SafeAreaView is a no-op on Android, so the header row rendered
     // inside the status bar's touch zone and its taps were swallowed by the
-    // notification-shade gesture. Push all content below the status bar.
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight ?? 0) : 0,
+    // notification-shade gesture. Push all content below that whole zone.
+    paddingTop:
+      Platform.OS === 'android'
+        ? (StatusBar.currentHeight ?? 0) + ANDROID_GESTURE_CLEARANCE
+        : 0,
   },
 });
