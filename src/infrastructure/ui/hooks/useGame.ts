@@ -25,8 +25,11 @@ export interface EscapingArrow {
   readonly cells: ReadonlyArray<{ row: number; col: number; direction: DirectionName }>;
 }
 
-const ESCAPE_ANIMATION_MS = 450;
-const SHAKE_ANIMATION_MS = 350;
+// The rail glide runs at constant speed, so long exits take longer: keep the
+// overlay alive long enough for the worst case (the SVG clips at the board
+// edge, so a lingering finished overlay draws nothing).
+const ESCAPE_ANIMATION_MS = 1800;
+const SHAKE_ANIMATION_MS = 200;
 
 /**
  * View-model hook for a level play. Bridges the React UI to the use cases:
