@@ -1,6 +1,7 @@
 import type { CellData, LevelData } from '../../application/ports/ILevelBuilder';
 import type { Difficulty } from '../../domain/entities/Level';
 import type { DirectionName } from '../../domain/value-objects/Direction';
+import { ARROW_PALETTE } from '../../adapters/factories/JsonCellFactory';
 
 interface Dir {
   name: DirectionName;
@@ -94,11 +95,14 @@ export function generateLevel(config: LevelConfig): LevelData {
   return best!;
 }
 
+/** CellData while under construction (colour is assigned after placement). */
+type MutableCellData = { -readonly [K in keyof CellData]: CellData[K] };
+
 function generateOnce(config: LevelConfig, seed: number): LevelData {
   const { rows, cols, maxLength } = config;
   const rand = createRng(seed);
   const grid: (number | null)[][] = Array.from({ length: rows }, () => Array<number | null>(cols).fill(null));
-  const cells: CellData[] = [];
+  const cells: MutableCellData[] = [];
   let nextId = 1;
 
   const inBounds = (r: number, c: number): boolean => r >= 0 && r < rows && c >= 0 && c < cols;
@@ -173,6 +177,10 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
       1 + Math.floor(rand() * maxLength),
       1 + Math.floor(rand() * maxLength),
     );
+    // The body must never occupy the cell straight in front of the head:
+    // a line there reads as the arrow pointing back into itself.
+    const exitR = hr + dir.dr;
+    const exitC = hc + dir.dc;
     while (path.length < target) {
       const tail = path[path.length - 1];
       // The previous segment sits on a free neighbour and points INTO the tail.
@@ -180,7 +188,7 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
         r: tail.r - d.dr,
         c: tail.c - d.dc,
         dir: d,
-      })).filter((o) => isEmpty(o.r, o.c));
+      })).filter((o) => isEmpty(o.r, o.c) && !(o.r === exitR && o.c === exitC));
       if (options.length === 0) {
         break;
       }
@@ -230,6 +238,48 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
         place(r, c, candidates[0]);
         progressed = true;
       }
+    }
+  }
+
+  // Colour the arrows so no two TOUCHING arrows share a colour — winding
+  // same-coloured neighbours would read as one incomprehensible shape. Greedy
+  // graph colouring over the arrow adjacency (8 palette colours is plenty);
+  // each arrow starts scanning at its own palette slot to keep variety.
+  const neighbours = new Map<number, Set<number>>();
+  for (let r = 0; r < rows; r += 1) {
+    for (let c = 0; c < cols; c += 1) {
+      const id = grid[r][c];
+      if (typeof id !== 'number' || id <= 0) continue;
+      for (const d of DIRS) {
+        const other = inBounds(r + d.dr, c + d.dc) ? grid[r + d.dr][c + d.dc] : null;
+        if (typeof other === 'number' && other > 0 && other !== id) {
+          if (!neighbours.has(id)) neighbours.set(id, new Set());
+          neighbours.get(id)!.add(other);
+        }
+      }
+    }
+  }
+  const colorOf = new Map<number, string>();
+  for (let id = 1; id < nextId; id += 1) {
+    const taken = new Set(
+      [...(neighbours.get(id) ?? [])]
+        .map((n) => colorOf.get(n))
+        .filter((c): c is string => c !== undefined),
+    );
+    const start = (id - 1) % ARROW_PALETTE.length;
+    let picked = ARROW_PALETTE[start];
+    for (let k = 0; k < ARROW_PALETTE.length; k += 1) {
+      const candidate = ARROW_PALETTE[(start + k) % ARROW_PALETTE.length];
+      if (!taken.has(candidate)) {
+        picked = candidate;
+        break;
+      }
+    }
+    colorOf.set(id, picked);
+  }
+  for (const cell of cells) {
+    if (cell.kind === 'ARROW' && cell.arrowId !== undefined) {
+      cell.color = colorOf.get(cell.arrowId);
     }
   }
 
