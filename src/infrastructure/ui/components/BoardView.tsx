@@ -112,11 +112,13 @@ export function BoardView({
 }
 
 /**
- * Overlay copy of an arrow that just escaped. Instead of sliding the whole
- * shape rigidly, every segment travels along the snake's own path and then
- * straight out through the head's exit lane (train-style): segment i follows
- * the same waypoints, offset by its position in the path, all driven by one
- * shared progress value with per-segment multi-stop interpolation.
+ * Overlay copy of an arrow that just escaped, animated like a snake: every
+ * segment travels along the arrow's own path and then straight out through
+ * the head's exit lane. One shared progress value drives per-segment
+ * multi-stop translate interpolations, and each segment also RESHAPES as it
+ * rounds corners — a slice that was an elbow straightens when it reaches a
+ * straight stretch — by cross-fading between its per-waypoint shapes exactly
+ * at cell boundaries.
  */
 function EscapingArrowOverlay({
   escaping,
@@ -130,7 +132,8 @@ function EscapingArrowOverlay({
   const cells = escaping.cells;
   const n = cells.length;
   // Waypoints in grid coords: the path itself, then the straight exit lane
-  // continued far enough that even the tail clears the screen.
+  // continued far enough that even the tail clears the screen. extDir[j] is
+  // the travel direction AT waypoint j (the lane keeps the exit direction).
   const travel = Math.max(Dimensions.get('window').width, Dimensions.get('window').height);
   const extra = Math.ceil(travel / size) + 2;
   const step = { UP: [-1, 0], DOWN: [1, 0], LEFT: [0, -1], RIGHT: [0, 1] }[escaping.direction];
@@ -139,8 +142,10 @@ function EscapingArrowOverlay({
     row: c.row,
     col: c.col,
   }));
+  const extDir: DirectionName[] = cells.map((c) => c.direction);
   for (let k = 1; k <= extra; k += 1) {
     waypoints.push({ row: head.row + step[0] * k, col: head.col + step[1] * k });
+    extDir.push(escaping.direction);
   }
   // Steps until the TAIL (segment 0) reaches the final waypoint.
   const steps = waypoints.length - 1;
@@ -175,6 +180,29 @@ function EscapingArrowOverlay({
             }),
           },
         ];
+
+        // The shapes this segment wears along its journey: at waypoint j it
+        // takes the local geometry (incoming/outgoing) of the path there.
+        // Consecutive identical shapes merge into one window; each shape is
+        // visible while the segment is nearer waypoint j than any other
+        // (windows switch at cell boundaries, m = j - i ± 0.5).
+        const shapeAt = (j: number) => ({
+          direction: extDir[j],
+          incoming: i === 0 || j === 0 ? null : extDir[j - 1],
+        });
+        const shapes: Array<{ direction: DirectionName; incoming: DirectionName | null; from: number; to: number }> = [];
+        for (let j = i; j < waypoints.length; j += 1) {
+          const s = shapeAt(Math.min(j, extDir.length - 1));
+          const last = shapes[shapes.length - 1];
+          if (last && last.direction === s.direction && last.incoming === s.incoming) {
+            last.to = j - i;
+          } else {
+            shapes.push({ ...s, from: j - i, to: j - i });
+          }
+          if (j >= n) break; // beyond the head the lane shape never changes
+        }
+        shapes[shapes.length - 1].to = steps;
+
         return (
           <Animated.View
             key={`${cell.row},${cell.col}`}
@@ -187,14 +215,39 @@ function EscapingArrowOverlay({
               transform,
             }}
           >
-            <ArrowPiece
-              direction={cell.direction}
-              incoming={i === 0 ? null : cells[i - 1].direction}
-              color={escaping.color}
-              isHead={i === n - 1}
-              isTail={i === 0}
-              size={size}
-            />
+            {shapes.map((shape, k) => {
+              const lo = shape.from - 0.5;
+              const hi = shape.to + 0.5;
+              const opacity =
+                shapes.length === 1
+                  ? 1
+                  : progress.interpolate({
+                      inputRange:
+                        k === 0
+                          ? [hi - 0.01, hi + 0.01]
+                          : k === shapes.length - 1
+                            ? [lo - 0.01, lo + 0.01]
+                            : [lo - 0.01, lo + 0.01, hi - 0.01, hi + 0.01],
+                      outputRange:
+                        k === 0
+                          ? [1, 0]
+                          : k === shapes.length - 1
+                            ? [0, 1]
+                            : [0, 1, 1, 0],
+                    });
+              return (
+                <Animated.View key={`shape-${k}`} style={[StyleSheet.absoluteFill, { opacity }]}>
+                  <ArrowPiece
+                    direction={shape.direction}
+                    incoming={shape.incoming}
+                    color={escaping.color}
+                    isHead={i === n - 1}
+                    isTail={i === 0}
+                    size={size}
+                  />
+                </Animated.View>
+              );
+            })}
           </Animated.View>
         );
       })}
