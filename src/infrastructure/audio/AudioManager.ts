@@ -13,6 +13,7 @@ export class AudioManager implements IAudioService {
 
   private engine: IAudioService = new NoopAudioService();
   private muted = false;
+  private volume = 1;
 
   private constructor() {}
 
@@ -26,6 +27,17 @@ export class AudioManager implements IAudioService {
   /** Swaps the underlying engine (e.g. plug an asset-backed service at startup). */
   useEngine(engine: IAudioService): void {
     this.engine = engine;
+    this.engine.setVolume?.(this.volume);
+  }
+
+  getVolume(): number {
+    return this.volume;
+  }
+
+  /** Sets the master volume (clamped to [0, 1]) on the engine. */
+  setVolume(volume: number): void {
+    this.volume = Math.min(1, Math.max(0, volume));
+    this.engine.setVolume?.(this.volume);
   }
 
   isMuted(): boolean {

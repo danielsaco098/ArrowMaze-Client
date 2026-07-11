@@ -82,17 +82,54 @@ export function generateLevel(config: LevelConfig): LevelData {
   // attempt is solvable by construction, so this only tunes stars/density.
   const wanted = Math.max(0, config.collectibles ?? 0);
   let best: LevelData | null = null;
-  for (let attempt = 0; attempt < 25; attempt += 1) {
+  for (let attempt = 0; attempt < 80; attempt += 1) {
     const candidate = generateOnce(config, config.seed + attempt * 7919);
     const stars = candidate.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
     const fill =
       candidate.cells.filter((c) => c.kind !== 'EMPTY').length / (config.rows * config.cols);
-    if (stars >= wanted && fill >= 0.8) {
+    if (stars >= wanted && fill >= 0.8 && deadHoles(candidate) === 0) {
       return candidate;
     }
     best = best ?? candidate;
   }
   return best!;
+}
+
+/**
+ * Gaps no exit lane crosses: they can never swallow an arrow, so they are
+ * dead space. The generator fills them by growing tails; any level that
+ * still has one is rejected and retried with a derived seed.
+ */
+function deadHoles(data: LevelData): number {
+  const occupied = new Set<string>();
+  const headOf = new Map<number, CellData>();
+  for (const cell of data.cells) {
+    occupied.add(`${cell.row},${cell.col}`);
+    if (cell.kind === 'ARROW' && cell.arrowId !== undefined) {
+      const current = headOf.get(cell.arrowId);
+      if (!current || (cell.segmentIndex ?? 0) > (current.segmentIndex ?? 0)) {
+        headOf.set(cell.arrowId, cell);
+      }
+    }
+  }
+  const onLane = new Set<string>();
+  for (const head of headOf.values()) {
+    const dir = DIRS.find((d) => d.name === head.direction)!;
+    let r = head.row + dir.dr;
+    let c = head.col + dir.dc;
+    while (r >= 0 && r < data.rows && c >= 0 && c < data.cols) {
+      onLane.add(`${r},${c}`);
+      r += dir.dr;
+      c += dir.dc;
+    }
+  }
+  let dead = 0;
+  for (let r = 0; r < data.rows; r += 1) {
+    for (let c = 0; c < data.cols; c += 1) {
+      if (!occupied.has(`${r},${c}`) && !onLane.has(`${r},${c}`)) dead += 1;
+    }
+  }
+  return dead;
 }
 
 /** CellData while under construction (colour is assigned after placement). */
@@ -161,8 +198,11 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
     return n;
   };
 
-  // Heads are recorded as arrows are placed (used to pick sweepable star spots).
+  // Heads are recorded as arrows are placed (used to pick sweepable star spots)
+  // and tails too (dead gaps are later filled by growing a neighbouring tail).
   const heads: Array<{ r: number; c: number; dir: Dir }> = [];
+  const tailAt = new Map<string, number>();
+  const minSegOf = new Map<number, number>();
 
   // Place an arrow with its head at (hr, hc) exiting toward `dir`. The body
   // grows BACKWARDS from the head as a self-avoiding walk over empty cells,
@@ -215,6 +255,9 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
       });
     }
     heads.push({ r: hr, c: hc, dir });
+    const tail = path[path.length - 1];
+    tailAt.set(`${tail.r},${tail.c}`, id);
+    minSegOf.set(id, 0);
   };
 
   let progressed = true;
@@ -238,6 +281,50 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
         place(r, c, candidates[0]);
         progressed = true;
       }
+    }
+  }
+
+  // Dead gaps — cells no exit lane crosses — can never swallow an arrow, so
+  // they are pure noise. Grow a neighbouring arrow's TAIL into each one
+  // (occupying a non-lane cell can never block an escape, and it can never
+  // sit straight in front of a head, because that cell IS a lane cell), and
+  // iterate so chains of gaps fill one after another.
+  const onLane = new Set<string>();
+  for (const { r: hr, c: hc, dir } of heads) {
+    let r = hr + dir.dr;
+    let c = hc + dir.dc;
+    while (inBounds(r, c)) {
+      onLane.add(`${r},${c}`);
+      r += dir.dr;
+      c += dir.dc;
+    }
+  }
+  let extended = true;
+  while (extended) {
+    extended = false;
+    for (let r = 0; r < rows; r += 1) {
+      for (let c = 0; c < cols; c += 1) {
+        const free = grid[r][c] === null || grid[r][c] === RESERVED;
+        if (!free || onLane.has(`${r},${c}`)) continue;
+        // The new tail must point INTO the arrow's current tail.
+        const d = DIRS.find((dd) => tailAt.has(`${r + dd.dr},${c + dd.dc}`));
+        if (!d) continue;
+        const id = tailAt.get(`${r + d.dr},${c + d.dc}`)!;
+        const seg = (minSegOf.get(id) ?? 0) - 1;
+        grid[r][c] = id;
+        cells.push({ row: r, col: c, kind: 'ARROW', direction: d.name, arrowId: id, segmentIndex: seg });
+        tailAt.delete(`${r + d.dr},${c + d.dc}`);
+        tailAt.set(`${r},${c}`, id);
+        minSegOf.set(id, seg);
+        extended = true;
+      }
+    }
+  }
+  // Extensions grew tails below segment 0: shift every arrow's indices so
+  // its tail is 0 again (consumers rely on 0 = tail, highest = head).
+  for (const cell of cells) {
+    if (cell.kind === 'ARROW' && cell.arrowId !== undefined) {
+      cell.segmentIndex = (cell.segmentIndex ?? 0) - (minSegOf.get(cell.arrowId) ?? 0);
     }
   }
 

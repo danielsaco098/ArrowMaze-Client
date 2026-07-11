@@ -77,6 +77,12 @@ export function useGame(levelId: number) {
   const load = useCallback(async () => {
     setStatus('LOADING');
     setOutcome({});
+    // A new board must start clean: kill every animation still running from
+    // the previous level (or the previous attempt), timers included.
+    animationTimers.current.forEach(clearTimeout);
+    animationTimers.current = [];
+    setEscaping([]);
+    setShakingArrowId(null);
     const { level, session } = await container.loadLevel.execute({ levelId });
     levelRef.current = level;
     sessionRef.current = session;
