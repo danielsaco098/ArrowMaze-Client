@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { useContainer } from '../AppContainerContext';
@@ -51,7 +51,16 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.level}>{level ? level.name : t('common.loading')}</Text>
+        <View style={styles.titleRow}>
+          <Pressable
+            accessibilityRole="button"
+            testID="back-button"
+            onPress={() => navigate({ name: 'levelSelect' })}
+          >
+            <Text style={styles.back}>{t('common.back')}</Text>
+          </Pressable>
+          <Text style={styles.level}>{level ? level.name : t('common.loading')}</Text>
+        </View>
         <View style={styles.stats}>
           <Text testID="lives" style={styles.lives}>
             {hearts}
@@ -158,6 +167,8 @@ function Overlay({
 const styles = StyleSheet.create({
   container: { flex: 1, padding: theme.spacing(2) },
   header: { marginBottom: theme.spacing(2) },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing(1.5) },
+  back: { color: theme.colors.muted, fontSize: 16 },
   level: { color: theme.colors.text, fontSize: 22, fontWeight: '800' },
   stats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing(1) },
   lives: { color: theme.colors.danger, fontSize: 20, letterSpacing: 2 },

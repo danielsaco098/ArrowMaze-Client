@@ -74,6 +74,21 @@ describe('Navigation flows (Router)', () => {
     expect(getByTestId('leaderboard-button')).toBeTruthy();
   });
 
+  it('should_abandon_the_run_and_record_nothing_when_back_is_pressed_mid_level', async () => {
+    // Arrange: enter a level directly
+    const container = makeGameContainer(() => buildBoard([[arrow('RIGHT'), empty()]]));
+    const { getByTestId } = await renderApp(container, { name: 'game', levelId: 1 });
+    await waitFor(() => expect(getByTestId('cell-0-0')).toBeTruthy());
+
+    // Act: quit mid-level via the back button
+    await fireEvent.press(getByTestId('back-button'));
+
+    // Assert: back on level select, and the abandoned run recorded no result
+    await waitFor(() => expect(getByTestId('level-1')).toBeTruthy());
+    expect(container.recordResult.execute).not.toHaveBeenCalled();
+    expect(container.syncProgress.execute).not.toHaveBeenCalled();
+  });
+
   it('should_show_the_defeat_overlay_and_recover_when_retry_is_pressed', async () => {
     // Arrange: two arrows blocking each other — every tap loses a life
     const container = makeGameContainer(() => buildBoard([[arrow('DOWN')], [arrow('UP')]]));
