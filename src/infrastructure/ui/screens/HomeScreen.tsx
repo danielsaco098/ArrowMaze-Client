@@ -5,12 +5,13 @@ import { useTranslation } from '../i18n/I18nContext';
 import { useSound } from '../hooks/useSound';
 import { useSession } from '../session/SessionContext';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { VolumeSlider } from '../components/VolumeSlider';
 import { theme } from '../theme';
 
 export function HomeScreen(): React.JSX.Element {
   const { navigate } = useNavigation();
   const { t, language, toggleLanguage } = useTranslation();
-  const { muted, toggleMuted } = useSound();
+  const { muted, toggleMuted, volume, setVolume } = useSound();
   const { isAuthenticated, user } = useSession();
 
   return (
@@ -43,6 +44,9 @@ export function HomeScreen(): React.JSX.Element {
           <Text style={styles.chipText}>{language.toUpperCase()}</Text>
         </Pressable>
       </View>
+      <View style={styles.volumeRow}>
+        <VolumeSlider volume={volume} onChange={setVolume} />
+      </View>
 
       <View style={styles.center}>
         <Text style={styles.title}>Arrow Maze</Text>
@@ -71,6 +75,11 @@ export function HomeScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: theme.spacing(3) },
   settingsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing(1) },
+  volumeRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: theme.spacing(0.5),
+  },
   chip: {
     paddingVertical: theme.spacing(0.75),
     paddingHorizontal: theme.spacing(1.5),

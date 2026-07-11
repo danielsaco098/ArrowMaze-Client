@@ -21,6 +21,7 @@ const MUSIC_SOURCE: number = require('../../../assets/audio/music.wav');
 export class ExpoAudioService implements IAudioService {
   private readonly effects = new Map<SoundEffect, AudioPlayer>();
   private music: AudioPlayer | null = null;
+  private volume = 1;
 
   playEffect(effect: SoundEffect): void {
     try {
@@ -29,6 +30,7 @@ export class ExpoAudioService implements IAudioService {
         player = createAudioPlayer(EFFECT_SOURCES[effect]);
         this.effects.set(effect, player);
       }
+      player.volume = this.volume;
       void player.seekTo(0);
       player.play();
     } catch {
@@ -41,9 +43,24 @@ export class ExpoAudioService implements IAudioService {
       if (!this.music) {
         this.music = createAudioPlayer(MUSIC_SOURCE);
         this.music.loop = true;
-        this.music.volume = 0.5;
       }
+      // Music sits behind the effects, scaled by the master volume.
+      this.music.volume = 0.5 * this.volume;
       this.music.play();
+    } catch {
+      // Never let audio break the game.
+    }
+  }
+
+  setVolume(volume: number): void {
+    this.volume = volume;
+    try {
+      for (const player of this.effects.values()) {
+        player.volume = volume;
+      }
+      if (this.music) {
+        this.music.volume = 0.5 * volume;
+      }
     } catch {
       // Never let audio break the game.
     }

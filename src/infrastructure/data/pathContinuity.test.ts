@@ -30,6 +30,33 @@ describe('arrow colours', () => {
   );
 });
 
+describe('holes', () => {
+  it.each(BUNDLED_LEVELS.map((l) => [l.id, l.name] as const))(
+    'should_place_every_gap_on_some_exit_lane_for_level_%i_%s',
+    (id) => {
+      // Arrange: a gap no exit lane crosses can never swallow an arrow — the
+      // generator must fill it or retry the seed.
+      const board = builder.build(BUNDLED_LEVELS.find((l) => l.id === id)!).board;
+      const onLane = new Set<string>();
+      for (const arrowId of board.arrowIds()) {
+        const head = board.headCellOfArrow(arrowId);
+        let lane = head.position.translate(head.direction);
+        while (board.isWithinBounds(lane)) {
+          onLane.add(`${lane.row},${lane.col}`);
+          lane = lane.translate(head.direction);
+        }
+      }
+
+      // Assert
+      for (const cell of board.cells()) {
+        if (cell.kind === 'EMPTY') {
+          expect(onLane.has(`${cell.position.row},${cell.position.col}`)).toBe(true);
+        }
+      }
+    },
+  );
+});
+
 describe('arrow path continuity', () => {
   it.each(BUNDLED_LEVELS.map((l) => [l.id, l.name] as const))(
     'should_never_put_a_body_segment_straight_in_front_of_the_head_for_level_%i_%s',
