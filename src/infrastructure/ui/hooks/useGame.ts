@@ -25,10 +25,10 @@ export interface EscapingArrow {
   readonly cells: ReadonlyArray<{ row: number; col: number; direction: DirectionName }>;
 }
 
-// The rail glide runs at constant speed, so long exits take longer: keep the
-// overlay alive long enough for the worst case (the SVG clips at the board
-// edge, so a lingering finished overlay draws nothing).
-const ESCAPE_ANIMATION_MS = 1800;
+// The rail glide runs at constant speed until the arrow crosses the SCREEN
+// edge (capped at ~2s): keep the overlay alive for the worst case — once the
+// flight ends the overlay draws nothing, so a lingering state is invisible.
+const ESCAPE_ANIMATION_MS = 2400;
 const SHAKE_ANIMATION_MS = 200;
 
 /**
