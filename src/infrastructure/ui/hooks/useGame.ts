@@ -147,8 +147,9 @@ export function useGame(levelId: number) {
         if (board && tappedCell instanceof ArrowCell) {
           const path = board.pathOfArrow(tappedCell.arrowId);
           const head = path[path.length - 1];
-          // Walk the exit lane: stars there become ghosts the flight sweeps,
-          // and the first permanent hole swallows the arrow.
+          // Walk the exit lane up to the first permanent hole: stars before it
+          // become ghosts the flight sweeps; the hole swallows the arrow, so
+          // nothing beyond it is touched (mirroring the domain sweep rule).
           const stars: Array<{ row: number; col: number }> = [];
           let hole: { row: number; col: number } | null = null;
           let lane = head.position.translate(head.direction);
@@ -157,11 +158,11 @@ export function useGame(levelId: number) {
             if (onLane.kind === 'COLLECTIBLE') {
               stars.push({ row: lane.row, col: lane.col });
             } else if (
-              hole === null &&
               onLane.kind === 'EMPTY' &&
               holesRef.current.has(`${lane.row},${lane.col}`)
             ) {
               hole = { row: lane.row, col: lane.col };
+              break;
             }
             lane = lane.translate(head.direction);
           }

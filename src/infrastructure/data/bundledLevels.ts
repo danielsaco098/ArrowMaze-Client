@@ -22,7 +22,7 @@ const LEVEL_CONFIGS: LevelConfig[] = [
   { id: 11, name: 'Long Hall', difficulty: 'HARD', rows: 10, cols: 9, seed: 3137, maxLength: 10, walls: 3, timeLimitSeconds: 150, collectibles: 2 },
   { id: 12, name: 'Gridlock', difficulty: 'HARD', rows: 10, cols: 10, seed: 3163, maxLength: 10, walls: 3, timeLimitSeconds: 140, collectibles: 2 },
   { id: 13, name: 'Tangled', difficulty: 'HARD', rows: 10, cols: 10, seed: 3169, maxLength: 11, walls: 3, timeLimitSeconds: 130, collectibles: 3 },
-  { id: 14, name: 'Sprawl', difficulty: 'HARD', rows: 11, cols: 10, seed: 3181, maxLength: 12, walls: 4, timeLimitSeconds: 120, collectibles: 3 },
+  { id: 14, name: 'Sprawl', difficulty: 'HARD', rows: 11, cols: 10, seed: 3182, maxLength: 12, walls: 4, timeLimitSeconds: 120, collectibles: 3 },
   { id: 15, name: 'The Great Escape', difficulty: 'HARD', rows: 11, cols: 11, seed: 3191, maxLength: 12, walls: 4, timeLimitSeconds: 110, collectibles: 3 },
 ];
 

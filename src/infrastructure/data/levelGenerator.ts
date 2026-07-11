@@ -82,17 +82,56 @@ export function generateLevel(config: LevelConfig): LevelData {
   // attempt is solvable by construction, so this only tunes stars/density.
   const wanted = Math.max(0, config.collectibles ?? 0);
   let best: LevelData | null = null;
-  for (let attempt = 0; attempt < 80; attempt += 1) {
+  for (let attempt = 0; attempt < 250; attempt += 1) {
     const candidate = generateOnce(config, config.seed + attempt * 7919);
     const stars = candidate.cells.filter((c) => c.kind === 'COLLECTIBLE').length;
     const fill =
       candidate.cells.filter((c) => c.kind !== 'EMPTY').length / (config.rows * config.cols);
-    if (stars >= wanted && fill >= 0.8 && deadHoles(candidate) === 0) {
+    if (
+      stars >= wanted &&
+      fill >= 0.8 &&
+      deadHoles(candidate) === 0 &&
+      unsweepableStars(candidate) === 0
+    ) {
       return candidate;
     }
     best = best ?? candidate;
   }
   return best!;
+}
+
+/**
+ * A star must be reachable BEFORE the first hole on at least one exit lane:
+ * an arrow falls into the hole, so anything beyond it can never be swept.
+ */
+function unsweepableStars(data: LevelData): number {
+  const occupied = new Map<string, CellData>();
+  const headOf = new Map<number, CellData>();
+  for (const cell of data.cells) {
+    occupied.set(`${cell.row},${cell.col}`, cell);
+    if (cell.kind === 'ARROW' && cell.arrowId !== undefined) {
+      const current = headOf.get(cell.arrowId);
+      if (!current || (cell.segmentIndex ?? 0) > (current.segmentIndex ?? 0)) {
+        headOf.set(cell.arrowId, cell);
+      }
+    }
+  }
+  const sweepable = new Set<string>();
+  for (const head of headOf.values()) {
+    const dir = DIRS.find((d) => d.name === head.direction)!;
+    let r = head.row + dir.dr;
+    let c = head.col + dir.dc;
+    while (r >= 0 && r < data.rows && c >= 0 && c < data.cols) {
+      const cell = occupied.get(`${r},${c}`);
+      if (!cell) break; // a hole: the arrow falls in, the lane ends here
+      if (cell.kind === 'COLLECTIBLE') sweepable.add(`${r},${c}`);
+      r += dir.dr;
+      c += dir.dc;
+    }
+  }
+  return data.cells.filter(
+    (cell) => cell.kind === 'COLLECTIBLE' && !sweepable.has(`${cell.row},${cell.col}`),
+  ).length;
 }
 
 /**
@@ -119,6 +158,9 @@ function deadHoles(data: LevelData): number {
     let c = head.col + dir.dc;
     while (r >= 0 && r < data.rows && c >= 0 && c < data.cols) {
       onLane.add(`${r},${c}`);
+      // The lane effectively ENDS at the first hole: the arrow falls in, so
+      // cells beyond it are never traversed.
+      if (!occupied.has(`${r},${c}`)) break;
       r += dir.dr;
       c += dir.dc;
     }
@@ -217,10 +259,18 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
       1 + Math.floor(rand() * maxLength),
       1 + Math.floor(rand() * maxLength),
     );
-    // The body must never occupy the cell straight in front of the head:
-    // a line there reads as the arrow pointing back into itself.
-    const exitR = hr + dir.dr;
-    const exitC = hc + dir.dc;
+    // The body must never occupy ANY cell of the head's exit lane: a winding
+    // body crossing its own lane reads as the arrow pointing at itself.
+    const ownLane = new Set<string>();
+    {
+      let r = hr + dir.dr;
+      let c = hc + dir.dc;
+      while (inBounds(r, c)) {
+        ownLane.add(`${r},${c}`);
+        r += dir.dr;
+        c += dir.dc;
+      }
+    }
     while (path.length < target) {
       const tail = path[path.length - 1];
       // The previous segment sits on a free neighbour and points INTO the tail.
@@ -228,7 +278,7 @@ function generateOnce(config: LevelConfig, seed: number): LevelData {
         r: tail.r - d.dr,
         c: tail.c - d.dc,
         dir: d,
-      })).filter((o) => isEmpty(o.r, o.c) && !(o.r === exitR && o.c === exitC));
+      })).filter((o) => isEmpty(o.r, o.c) && !ownLane.has(`${o.r},${o.c}`));
       if (options.length === 0) {
         break;
       }

@@ -23,6 +23,8 @@ export class GameSession {
   private currentStatus: GameStatus;
   private moveCount: number;
   private collectedCount: number;
+  /** Cells that started the level empty: permanent holes that swallow arrows. */
+  private readonly holes: ReadonlySet<string>;
 
   constructor(
     private readonly board: Board,
@@ -33,6 +35,12 @@ export class GameSession {
     this.moveCount = 0;
     this.collectedCount = 0;
     this.currentStatus = board.isCleared() ? GameStatus.Victory : GameStatus.Playing;
+    this.holes = new Set(
+      board
+        .cells()
+        .filter((cell) => cell.kind === 'EMPTY')
+        .map((cell) => `${cell.position.row},${cell.position.col}`),
+    );
   }
 
   get status(): GameStatus {
@@ -111,13 +119,17 @@ export class GameSession {
   }
 
   /**
-   * An escaping arrow sweeps every cell from its head to the board edge:
-   * any collectible star on that lane is picked up (the cell becomes empty).
+   * An escaping arrow sweeps its exit lane from the head outward, picking up
+   * collectible stars — but only UP TO the first permanent hole: the arrow
+   * falls in there and is gone, so nothing beyond the hole can be touched.
    */
   private collectAlongLane(head: Position, direction: Direction): void {
     let row = head.row + direction.rowDelta;
     let col = head.col + direction.colDelta;
     while (row >= 0 && row < this.board.rows && col >= 0 && col < this.board.cols) {
+      if (this.holes.has(`${row},${col}`)) {
+        return;
+      }
       const cell = this.board.cellAt(new Position(row, col));
       if (cell.kind === 'COLLECTIBLE') {
         this.board.clearCell(cell.position);
