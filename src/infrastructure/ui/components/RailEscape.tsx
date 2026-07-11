@@ -1,7 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Dimensions, StyleSheet, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Dimensions, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Polygon } from 'react-native-svg';
 import type { EscapingArrow } from '../hooks/useGame';
+import { AudioManager } from '../../audio/AudioManager';
+import { arrowMetrics } from './arrowMetrics';
+import { theme } from '../theme';
 
 /** Constant glide speed, in board cells per second. */
 const SPEED_CELLS_PER_SEC = 16;
@@ -21,16 +24,19 @@ const UNIT: Record<EscapingArrow['direction'], Point> = {
 /**
  * Escape animation as a sliding window over a persistent rail.
  *
- * The arrow's path (plus its straight exit lane, extended all the way past
- * the SCREEN edge) becomes one polyline through the cell centres — the rail.
- * A single scalar, `arcOffset` (distance travelled along the rail), is
- * advanced by a requestAnimationFrame loop at CONSTANT speed; the body is
- * the stroke-dash window [arcOffset, arcOffset + snakeLen] of the rail path,
- * so corners bend (round joins) instead of the body splitting, and the
- * arrowhead rides the front of the window. The SVG canvas extends beyond the
- * board on the exit side, so the arrow visibly leaves the board and keeps
- * flying until it crosses the edge of the screen. Purely presentational:
- * the domain has already removed the arrow.
+ * The arrow's path plus its exit lane become one polyline through the cell
+ * centres — the rail. A single scalar, `arcOffset` (distance travelled along
+ * the rail), is advanced by a requestAnimationFrame loop at CONSTANT speed;
+ * the body is the stroke-dash window of the rail path, so corners bend
+ * (round joins) instead of the body splitting, and the arrowhead rides the
+ * front of the window.
+ *
+ * Where the flight ends depends on the lane: with a permanent hole on it the
+ * rail STOPS at the hole's centre, so the window shrinks into the hole (the
+ * arrow is swallowed); otherwise the rail extends past the screen edge and
+ * the arrow flies out of view. Stars on the lane stay visible as ghosts and
+ * vanish (with a collect chime) exactly when the front reaches them.
+ * Purely presentational: the domain has already settled the outcome.
  */
 export function RailEscape({
   escaping,
@@ -43,9 +49,7 @@ export function RailEscape({
   rows: number;
   cols: number;
 }): React.JSX.Element {
-  const t = Math.min(8, Math.max(3, Math.round(size * 0.17)));
-  const headLen = Math.min(20, Math.round(size * 0.44));
-  const headHalf = Math.min(11, Math.max(t, Math.round(size * 0.23)));
+  const { t, headLen, headHalf } = arrowMetrics(size);
 
   const rail = useMemo(() => {
     // Enough to reach any screen edge from anywhere on the board.
@@ -67,8 +71,12 @@ export function RailEscape({
     const head = pts[pts.length - 1];
     // A single-cell arrow still shows a short body behind its head.
     const snakeLen = Math.max((pts.length - 1) * size, Math.round(size * 0.45));
-    // Fly until even the tail (and its round cap) has crossed the screen edge.
-    const extension = offScreen + snakeLen + headLen + t;
+    // Swallowed: the rail ends at the hole's centre and the window shrinks
+    // into it. Otherwise: fly until even the tail crosses the screen edge.
+    const extension = escaping.hole
+      ? Math.abs(centre(escaping.hole.col) + padX - head.x) +
+        Math.abs(centre(escaping.hole.row) + padY - head.y)
+      : offScreen + snakeLen + headLen + t;
     pts.push({ x: head.x + d.x * extension, y: head.y + d.y * extension });
 
     const lengths: number[] = [0];
@@ -77,11 +85,21 @@ export function RailEscape({
         lengths[i - 1] + Math.abs(pts[i].x - pts[i - 1].x) + Math.abs(pts[i].y - pts[i - 1].y),
       );
     }
+    const total = lengths[lengths.length - 1];
+    // Arc distance at which the front reaches each lane star.
+    const headArc = lengths[pts.length - 2];
+    const starArcs = escaping.stars.map(
+      (s) =>
+        headArc +
+        Math.abs(centre(s.col) + padX - head.x) +
+        Math.abs(centre(s.row) + padY - head.y),
+    );
     return {
       pts,
       lengths,
       snakeLen,
-      total: lengths[lengths.length - 1],
+      total,
+      starArcs,
       path: pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' '),
       canvas: { left: -padX, top: -padY, width: canvasWidth, height: canvasHeight },
     };
@@ -89,9 +107,11 @@ export function RailEscape({
 
   // The one scalar that drives everything: distance travelled along the rail.
   const [arcOffset, setArcOffset] = useState(0);
+  const chimed = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     setArcOffset(0);
+    chimed.current = new Set();
     const end = rail.total;
     // Widget tests only assert presence: jump to the end state instead of
     // scheduling an animation loop that would starve the test runner.
@@ -108,12 +128,18 @@ export function RailEscape({
       const now = Date.now();
       arc += ((now - last) / 1000) * speed;
       last = now;
-      if (arc >= end) {
-        setArcOffset(end);
-        return;
+      const clamped = Math.min(arc, end);
+      // A star vanishes with a chime the moment the front sweeps over it.
+      rail.starArcs.forEach((starArc, i) => {
+        if (!chimed.current.has(i) && clamped + rail.snakeLen >= starArc) {
+          chimed.current.add(i);
+          AudioManager.getInstance().playEffect('COLLECT');
+        }
+      });
+      setArcOffset(clamped);
+      if (arc < end) {
+        raf = requestAnimationFrame(step);
       }
-      setArcOffset(arc);
-      raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
@@ -122,6 +148,9 @@ export function RailEscape({
   // The head rides the front of the window (clamped to the rail).
   const front = Math.min(arcOffset + rail.snakeLen, rail.total);
   const head = pointAt(rail.pts, rail.lengths, front);
+  const done = arcOffset >= rail.total;
+  // A swallowed head disappears into the hole; a flying one exits the screen.
+  const headVisible = !(escaping.hole && front >= rail.total) && !done;
 
   return (
     <View testID="escaping-arrow" pointerEvents="none" style={styles.overlay}>
@@ -140,12 +169,35 @@ export function RailEscape({
           strokeDasharray={`${rail.snakeLen} ${rail.total + rail.snakeLen}`}
           strokeDashoffset={-arcOffset}
         />
-        <Polygon
-          points={`0,${-headHalf} 0,${headHalf} ${headLen},0`}
-          fill={escaping.color}
-          transform={`translate(${head.x}, ${head.y}) rotate(${head.angle})`}
-        />
+        {headVisible && (
+          <Polygon
+            points={`0,${-headHalf} 0,${headHalf} ${headLen},0`}
+            fill={escaping.color}
+            transform={`translate(${head.x}, ${head.y}) rotate(${head.angle})`}
+          />
+        )}
       </Svg>
+      {escaping.stars.map((star, i) =>
+        !done && front < rail.starArcs[i] ? (
+          <Text
+            key={`star-${star.row}-${star.col}`}
+            accessibilityLabel="collectible-ghost"
+            style={[
+              styles.star,
+              {
+                left: star.col * size,
+                top: star.row * size,
+                width: size,
+                height: size,
+                fontSize: size * 0.5,
+                lineHeight: size,
+              },
+            ]}
+          >
+            ★
+          </Text>
+        ) : null,
+      )}
     </View>
   );
 }
@@ -160,6 +212,11 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     overflow: 'visible',
+  },
+  star: {
+    position: 'absolute',
+    textAlign: 'center',
+    color: theme.colors.exit,
   },
 });
 

@@ -13,6 +13,8 @@ export type GameViewStatus = 'LOADING' | GameStatus;
 export interface GameOutcome {
   score?: number;
   isNewBest?: boolean;
+  /** True when this victory completed the LAST remaining level of the game. */
+  allCompleted?: boolean;
 }
 
 /** Snapshot of an arrow taken right before it escaped, for the slide-out animation. */
@@ -23,6 +25,10 @@ export interface EscapingArrow {
   readonly direction: DirectionName;
   /** The arrow's path, tail first, with each segment's own direction. */
   readonly cells: ReadonlyArray<{ row: number; col: number; direction: DirectionName }>;
+  /** Stars sitting on the exit lane (in lane order): ghosts until the flight passes them. */
+  readonly stars: ReadonlyArray<{ row: number; col: number }>;
+  /** First permanent hole on the exit lane, if any: the arrow is swallowed there. */
+  readonly hole: { row: number; col: number } | null;
 }
 
 // The rail glide runs at constant speed until the arrow crosses the SCREEN
@@ -54,8 +60,9 @@ export function useGame(levelId: number) {
   /** Stars collected so far / total stars the level started with. */
   const [collected, setCollected] = useState<number>(0);
   const [totalCollectibles, setTotalCollectibles] = useState<number>(0);
-  /** Transient animation events consumed by the board. */
-  const [escaping, setEscaping] = useState<EscapingArrow | null>(null);
+  /** Transient animation events consumed by the board. Escapes queue up so
+   * every tapped arrow finishes its own flight, even when taps overlap. */
+  const [escaping, setEscaping] = useState<ReadonlyArray<EscapingArrow>>([]);
   const [shakingArrowId, setShakingArrowId] = useState<number | null>(null);
   const animationTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [, bumpRenderToken] = useState<number>(0);
@@ -74,11 +81,12 @@ export function useGame(levelId: number) {
     levelRef.current = level;
     sessionRef.current = session;
     boardRef.current = level.board;
-    // Snapshot which cells start empty/blocked: those stay black holes, while a
-    // cell an arrow later slides out of must NOT turn black (it had an arrow now).
+    // Snapshot which cells start EMPTY: those are permanent holes (they can
+    // swallow escaping arrows), while a cell an arrow or a star later vacates
+    // must NOT become one — it was occupied when the level began.
     const holes = new Set<string>();
     for (const cell of level.board.cells()) {
-      if (cell.kind !== 'ARROW') {
+      if (cell.kind === 'EMPTY') {
         holes.add(`${cell.position.row},${cell.position.col}`);
       }
     }
@@ -132,15 +140,36 @@ export function useGame(levelId: number) {
         let snapshot: EscapingArrow | null = null;
         if (board && tappedCell instanceof ArrowCell) {
           const path = board.pathOfArrow(tappedCell.arrowId);
+          const head = path[path.length - 1];
+          // Walk the exit lane: stars there become ghosts the flight sweeps,
+          // and the first permanent hole swallows the arrow.
+          const stars: Array<{ row: number; col: number }> = [];
+          let hole: { row: number; col: number } | null = null;
+          let lane = head.position.translate(head.direction);
+          while (board.isWithinBounds(lane)) {
+            const onLane = board.cellAt(lane);
+            if (onLane.kind === 'COLLECTIBLE') {
+              stars.push({ row: lane.row, col: lane.col });
+            } else if (
+              hole === null &&
+              onLane.kind === 'EMPTY' &&
+              holesRef.current.has(`${lane.row},${lane.col}`)
+            ) {
+              hole = { row: lane.row, col: lane.col };
+            }
+            lane = lane.translate(head.direction);
+          }
           snapshot = {
             arrowId: tappedCell.arrowId,
             color: tappedCell.color,
-            direction: path[path.length - 1].direction.name,
+            direction: head.direction.name,
             cells: path.map((c) => ({
               row: c.position.row,
               col: c.position.col,
               direction: c.direction.name,
             })),
+            stars,
+            hole,
           };
         }
 
@@ -153,9 +182,13 @@ export function useGame(levelId: number) {
 
         if (snapshot) {
           if (result.outcome === TapOutcome.Escaped) {
-            setEscaping(snapshot);
+            const flight = snapshot;
+            setEscaping((prev) => [...prev, flight]);
             animationTimers.current.push(
-              setTimeout(() => setEscaping(null), ESCAPE_ANIMATION_MS + 100),
+              setTimeout(
+                () => setEscaping((prev) => prev.filter((e) => e !== flight)),
+                ESCAPE_ANIMATION_MS + 100,
+              ),
             );
           } else {
             setShakingArrowId(snapshot.arrowId);
@@ -174,7 +207,12 @@ export function useGame(levelId: number) {
             difficulty: levelRef.current!.difficulty,
             collectibles: session.collectiblesCollected,
           });
-          setOutcome({ score: recorded.score.points, isNewBest: recorded.isNewBest });
+          const allLevels = await container.levels.getAll();
+          setOutcome({
+            score: recorded.score.points,
+            isNewBest: recorded.isNewBest,
+            allCompleted: recorded.progress.completedCount() >= allLevels.length,
+          });
         }
       } catch {
         // Tapping a non-arrow cell (empty/wall/exit) is a no-op, not a penalty.

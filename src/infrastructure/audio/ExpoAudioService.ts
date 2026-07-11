@@ -7,6 +7,7 @@ const EFFECT_SOURCES: Record<SoundEffect, number> = {
   BLOCKED: require('../../../assets/audio/blocked.wav'),
   VICTORY: require('../../../assets/audio/victory.wav'),
   DEFEAT: require('../../../assets/audio/defeat.wav'),
+  COLLECT: require('../../../assets/audio/collect.wav'),
 };
 const MUSIC_SOURCE: number = require('../../../assets/audio/music.wav');
 

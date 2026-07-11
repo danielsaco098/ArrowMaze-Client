@@ -23,8 +23,8 @@ interface Props {
   board: Board;
   /** Positions that started the level empty/blocked (rendered as black holes). */
   holes: ReadonlySet<string>;
-  /** Arrow that just escaped: an overlay copy slides off the screen. */
-  escaping?: EscapingArrow | null;
+  /** Arrows in flight: each escape queues an overlay that finishes on its own. */
+  escaping?: ReadonlyArray<EscapingArrow>;
   /** Arrow that was just blocked: its cells shake in place. */
   shakingArrowId?: number | null;
   onTapCell: (position: Position) => void;
@@ -34,7 +34,7 @@ interface Props {
 export function BoardView({
   board,
   holes,
-  escaping = null,
+  escaping = [],
   shakingArrowId = null,
   onTapCell,
 }: Props): React.JSX.Element {
@@ -128,9 +128,15 @@ export function BoardView({
           })}
         </View>
       ))}
-      {escaping && (
-        <RailEscape escaping={escaping} size={size} rows={board.rows} cols={board.cols} />
-      )}
+      {escaping.map((flight) => (
+        <RailEscape
+          key={`flight-${flight.arrowId}`}
+          escaping={flight}
+          size={size}
+          rows={board.rows}
+          cols={board.cols}
+        />
+      ))}
     </View>
   );
 }
