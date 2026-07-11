@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Cell } from '../../../domain/entities/Cell';
 import { ArrowCell } from '../../../domain/entities/ArrowCell';
 import type { Position } from '../../../domain/value-objects/Position';
@@ -45,9 +45,7 @@ export function CellView({
       ? theme.colors.wall
       : cell.kind === 'EXIT'
         ? theme.colors.exit
-        : isHole
-          ? 'rgba(0,0,0,0.28)' // a permanent gap: subtly recessed, not a black blob
-          : 'transparent'; // a space an arrow has left behind
+        : 'transparent'; // gaps draw their hole circle as a child instead
 
   return (
     <Pressable
@@ -70,6 +68,15 @@ export function CellView({
         <Text accessibilityLabel="collectible" style={[styles.star, { fontSize: size * 0.5 }]}>
           ★
         </Text>
+      ) : isHole && cell.kind === 'EMPTY' ? (
+        // A permanent hole: a round pit that can swallow escaping arrows.
+        <View
+          accessibilityLabel="hole"
+          style={[
+            styles.hole,
+            { width: size * 0.55, height: size * 0.55, borderRadius: size * 0.275 },
+          ]}
+        />
       ) : null}
     </Pressable>
   );
@@ -87,5 +94,8 @@ const styles = StyleSheet.create({
   },
   star: {
     color: theme.colors.exit,
+  },
+  hole: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
 });

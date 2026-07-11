@@ -74,6 +74,25 @@ describe('Navigation flows (Router)', () => {
     expect(getByTestId('leaderboard-button')).toBeTruthy();
   });
 
+  it('should_celebrate_when_the_victory_completes_every_level', async () => {
+    // Arrange: winning this level completes the whole game (1 of 1 levels)
+    const container = makeGameContainer(() => buildBoard([[arrow('RIGHT'), empty()]]));
+    (container.recordResult.execute as jest.Mock).mockResolvedValue({
+      score: { points: 950 },
+      isNewBest: true,
+      progress: PlayerProgress.fromEntries([[1, 950]]),
+    });
+    const { getByTestId } = await renderApp(container, { name: 'game', levelId: 1 });
+    await waitFor(() => expect(getByTestId('cell-0-0')).toBeTruthy());
+
+    // Act: win
+    await fireEvent.press(getByTestId('cell-0-0'));
+
+    // Assert: the victory overlay celebrates the full completion
+    await waitFor(() => expect(getByTestId('victory-overlay')).toBeTruthy());
+    await waitFor(() => expect(getByTestId('all-completed')).toBeTruthy());
+  });
+
   it('should_abandon_the_run_and_record_nothing_when_back_is_pressed_mid_level', async () => {
     // Arrange: enter a level directly
     const container = makeGameContainer(() => buildBoard([[arrow('RIGHT'), empty()]]));

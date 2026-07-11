@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, type ViewStyle } from 'react-native';
 import type { DirectionName } from '../../../domain/value-objects/Direction';
+import { arrowMetrics } from './arrowMetrics';
 
 interface Props {
   /** This segment's direction: where the path continues (the head's exit). */
@@ -38,9 +39,7 @@ export function ArrowPiece({
   isTail,
   size,
 }: Props): React.JSX.Element {
-  // Stroke metrics are CAPPED: on big cells the line keeps its size and the
-  // extra room becomes visual separation between different arrows.
-  const t = Math.min(8, Math.max(3, Math.round(size * 0.17)));
+  const { t } = arrowMetrics(size);
   const label = `arrow-${direction.toLowerCase()}`;
   // The line enters through the edge shared with the previous segment.
   const entrySide = incoming ? OPPOSITE[incoming] : null;
@@ -68,8 +67,7 @@ export function ArrowPiece({
     );
   }
 
-  const headLen = Math.min(20, Math.round(size * 0.44));
-  const headHalf = Math.min(11, Math.max(t, Math.round(size * 0.23)));
+  const { headLen, headHalf } = arrowMetrics(size);
   // A single-cell arrow still shows a short shaft behind the head.
   const backSide = entrySide ?? OPPOSITE[direction];
   return (

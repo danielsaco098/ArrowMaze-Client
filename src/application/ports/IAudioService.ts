@@ -1,4 +1,4 @@
-export type SoundEffect = 'ESCAPE' | 'BLOCKED' | 'VICTORY' | 'DEFEAT';
+export type SoundEffect = 'ESCAPE' | 'BLOCKED' | 'VICTORY' | 'DEFEAT' | 'COLLECT';
 
 /**
  * Port for game audio. Use cases/observers depend on this abstraction; the

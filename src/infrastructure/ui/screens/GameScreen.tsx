@@ -73,6 +73,10 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
               ⏱ {formatTime(remainingSeconds)}
             </Text>
           )}
+          <Text testID="level-indicator" style={styles.levelIndicator}>
+            {t('game.levelNumber', { id: levelId })}
+            {level ? ` · ${t(`difficulty.${level.difficulty}`)}` : ''}
+          </Text>
           {totalCollectibles > 0 && (
             <Text testID="collectibles" style={styles.collectibles}>
               ★ {collected}/{totalCollectibles}
@@ -102,6 +106,11 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
         <Overlay testID="victory-overlay" title={t('game.victoryTitle')} tone={theme.colors.success}>
           <Text style={styles.score}>{t('game.score', { score: outcome.score ?? 0 })}</Text>
           {outcome.isNewBest && <Text style={styles.newBest}>{t('game.newBest')}</Text>}
+          {outcome.allCompleted && (
+            <Text testID="all-completed" style={styles.allCompleted}>
+              {t('game.allCompleted')}
+            </Text>
+          )}
           {levelId < LAST_LEVEL_ID && (
             <PrimaryButton
               testID="next-button"
@@ -173,6 +182,7 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing(1) },
   lives: { color: theme.colors.danger, fontSize: 20, letterSpacing: 2 },
   timer: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
+  levelIndicator: { color: theme.colors.muted, fontSize: 14, fontWeight: '700' },
   timerLow: { color: theme.colors.danger },
   collectibles: { color: theme.colors.exit, fontSize: 16, fontWeight: '700' },
   moves: { color: theme.colors.muted, fontSize: 16 },
@@ -200,4 +210,11 @@ const styles = StyleSheet.create({
   overlayActions: { gap: theme.spacing(1.5), alignItems: 'center' },
   score: { color: theme.colors.text, fontSize: 18, marginBottom: theme.spacing(1) },
   newBest: { color: theme.colors.exit, fontSize: 14, marginBottom: theme.spacing(1) },
+  allCompleted: {
+    color: theme.colors.success,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: theme.spacing(1),
+  },
 });

@@ -33,18 +33,48 @@ describe('BoardView', () => {
       <BoardView
         board={board}
         holes={new Set()}
-        escaping={{
-          arrowId: 9,
-          color: '#FFD166',
-          direction: 'RIGHT',
-          cells: [{ row: 0, col: 0, direction: 'RIGHT' }],
-        }}
+        escaping={[
+          {
+            arrowId: 9,
+            color: '#FFD166',
+            direction: 'RIGHT',
+            cells: [{ row: 0, col: 0, direction: 'RIGHT' }],
+            stars: [],
+            hole: null,
+          },
+        ]}
         onTapCell={() => {}}
       />,
     );
 
     // Assert
     expect(getByTestId('escaping-arrow')).toBeTruthy();
+  });
+
+  it('should_render_one_overlay_per_flight_when_several_arrows_escape_in_a_row', async () => {
+    // Arrange: two flights in progress at once (overlapping taps)
+    const board = buildBoard([[arrow('RIGHT'), empty()]]);
+    const flight = (arrowId: number) => ({
+      arrowId,
+      color: '#FFD166',
+      direction: 'RIGHT' as const,
+      cells: [{ row: 0, col: 0, direction: 'RIGHT' as const }],
+      stars: [],
+      hole: null,
+    });
+
+    // Act
+    const { getAllByTestId } = await render(
+      <BoardView
+        board={board}
+        holes={new Set()}
+        escaping={[flight(1), flight(2)]}
+        onTapCell={() => {}}
+      />,
+    );
+
+    // Assert: each escape keeps its own animation overlay
+    expect(getAllByTestId('escaping-arrow')).toHaveLength(2);
   });
 
   it('should_keep_rendering_the_board_when_an_arrow_is_shaking', async () => {
