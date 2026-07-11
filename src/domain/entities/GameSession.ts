@@ -92,7 +92,7 @@ export class GameSession {
     const arrow = this.board.cellAt(position) as ArrowCell;
     const arrowId = arrow.arrowId;
     let outcome: TapOutcome;
-    if (this.traversal.canEscape(this.board, position)) {
+    if (this.traversal.canEscape(this.board, position, this.holes)) {
       // The sweep follows the HEAD's exit lane (a winding arrow's tapped cell
       // may point elsewhere along the path).
       const head = this.board.headCellOfArrow(arrowId);

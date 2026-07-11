@@ -99,6 +99,23 @@ describe('Winding arrows', () => {
     expect(session.collectiblesCollected).toBe(1);
   });
 
+  it('should_escape_through_a_hole_even_when_arrows_sit_beyond_it', () => {
+    // Arrange: arrow → hole → blocking arrow. The hole swallows the arrow,
+    // so the blocker beyond it is irrelevant — no need to clear it first.
+    const board = build([
+      [seg('RIGHT', 1, 0), empty(), seg('LEFT', 2, 0), empty()],
+    ]);
+    const session = new GameSession(board);
+
+    // Act
+    const result = session.tap(new Position(0, 0));
+
+    // Assert: swallowed by the hole; the other arrow is untouched
+    expect(result.outcome).toBe(TapOutcome.Escaped);
+    expect(session.arrowsRemaining).toBe(1);
+    expect(board.cellAt(new Position(0, 2)).isArrow()).toBe(true);
+  });
+
   it('should_be_blocked_when_another_arrow_sits_in_the_heads_lane', () => {
     // Arrange: the L-shaped arrow's RIGHT lane is blocked by arrow 2
     const board = build([
