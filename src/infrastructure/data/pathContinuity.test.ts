@@ -43,6 +43,8 @@ describe('holes', () => {
         let lane = head.position.translate(head.direction);
         while (board.isWithinBounds(lane)) {
           onLane.add(`${lane.row},${lane.col}`);
+          // The arrow falls into the first hole: the lane ends there.
+          if (board.cellAt(lane).kind === 'EMPTY') break;
           lane = lane.translate(head.direction);
         }
       }
@@ -59,20 +61,22 @@ describe('holes', () => {
 
 describe('arrow path continuity', () => {
   it.each(BUNDLED_LEVELS.map((l) => [l.id, l.name] as const))(
-    'should_never_put_a_body_segment_straight_in_front_of_the_head_for_level_%i_%s',
+    'should_never_cross_its_own_exit_lane_for_level_%i_%s',
     (id) => {
-      // Arrange: a segment right in front of the head reads as the arrow
-      // pointing back into itself — the generator must never produce it.
+      // Arrange: an arrow whose body sits anywhere on its own exit lane reads
+      // as the arrow pointing at itself — the generator must never produce it.
       const board = builder.build(BUNDLED_LEVELS.find((l) => l.id === id)!).board;
 
       for (const arrowId of board.arrowIds()) {
         const head = board.headCellOfArrow(arrowId);
-        const inFront = head.position.translate(head.direction);
-        if (!board.isWithinBounds(inFront)) continue;
-        const cell = board.cellAt(inFront);
-        // Assert
-        const isOwnBody = cell.isArrow() && (cell as typeof head).arrowId === arrowId;
-        expect(isOwnBody).toBe(false);
+        let lane = head.position.translate(head.direction);
+        while (board.isWithinBounds(lane)) {
+          const cell = board.cellAt(lane);
+          // Assert
+          const isOwnBody = cell.isArrow() && (cell as typeof head).arrowId === arrowId;
+          expect(isOwnBody).toBe(false);
+          lane = lane.translate(head.direction);
+        }
       }
     },
   );

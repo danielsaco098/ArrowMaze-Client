@@ -68,6 +68,37 @@ describe('Winding arrows', () => {
     expect(session.arrowsRemaining).toBe(0);
   });
 
+  it('should_not_collect_stars_beyond_the_first_hole_when_the_arrow_is_swallowed', () => {
+    // Arrange: arrow → hole → star: the arrow falls into the hole first
+    const board = build([
+      [seg('RIGHT', 1, 0), empty(), { kind: 'COLLECTIBLE' }, empty()],
+    ]);
+    const session = new GameSession(board);
+
+    // Act
+    const result = session.tap(new Position(0, 0));
+
+    // Assert: escaped, but the star beyond the hole is untouched
+    expect(result.outcome).toBe(TapOutcome.Escaped);
+    expect(session.collectiblesCollected).toBe(0);
+    expect(board.cellAt(new Position(0, 2)).kind).toBe('COLLECTIBLE');
+  });
+
+  it('should_collect_stars_that_sit_before_the_first_hole', () => {
+    // Arrange: arrow → star → hole
+    const board = build([
+      [seg('RIGHT', 1, 0), { kind: 'COLLECTIBLE' }, empty(), empty()],
+    ]);
+    const session = new GameSession(board);
+
+    // Act
+    const result = session.tap(new Position(0, 0));
+
+    // Assert
+    expect(result.outcome).toBe(TapOutcome.Escaped);
+    expect(session.collectiblesCollected).toBe(1);
+  });
+
   it('should_be_blocked_when_another_arrow_sits_in_the_heads_lane', () => {
     // Arrange: the L-shaped arrow's RIGHT lane is blocked by arrow 2
     const board = build([
