@@ -8,12 +8,19 @@ import { NotAnArrowError } from '../errors';
  * slide off the board in the direction its HEAD points.
  *
  * It walks cell by cell from the head toward the edge: if every cell on that
- * lane is passable, the arrow escapes. The arrow's OWN body never blocks it:
- * a winding arrow may cross its head's lane, but as the arrow slides out each
- * body segment vacates its cell before the head arrives (train-style motion).
+ * lane is passable, the arrow escapes. Two refinements:
+ * - The arrow's OWN body never blocks it: a winding arrow may cross its
+ *   head's lane, but as it slides out each body segment vacates its cell
+ *   before the head arrives (train-style motion).
+ * - A permanent HOLE on the lane is an escape hatch: the arrow falls in
+ *   there, so whatever sits BEYOND the hole cannot block it.
  */
 export class PathTraversalService {
-  canEscape(board: Board, position: Position): boolean {
+  canEscape(
+    board: Board,
+    position: Position,
+    holes: ReadonlySet<string> = new Set(),
+  ): boolean {
     const cell = board.cellAt(position);
     if (!(cell instanceof ArrowCell)) {
       throw new NotAnArrowError(position);
@@ -22,6 +29,9 @@ export class PathTraversalService {
     const head = board.headCellOfArrow(cell.arrowId);
     let next = head.position.translate(head.direction);
     while (board.isWithinBounds(next)) {
+      if (holes.has(`${next.row},${next.col}`)) {
+        return true; // swallowed by the hole — nothing beyond it matters
+      }
       const onLane = board.cellAt(next);
       const isOwnBody = onLane instanceof ArrowCell && onLane.arrowId === cell.arrowId;
       if (!onLane.isPassable() && !isOwnBody) {
