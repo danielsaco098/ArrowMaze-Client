@@ -296,6 +296,16 @@ Because every use case implements the same `execute(input): Promise<output>` con
 compose transparently and the business code never references a logger, profiler, error handler, session
 check or cache.
 
+**Why this strategy works — it is SOLID applied to AOP:**
+
+- **SRP** — each decorator carries exactly one cross-cutting concern.
+- **OCP** — aspects are added or re-ordered without modifying a single use case (they are wrapped, not edited).
+- **LSP** — a decorated use case is substitutable anywhere the bare one is expected: both honour `UseCase<I, O>`.
+- **ISP/DIP** — decorators depend only on abstractions: the wrapped `UseCase` plus narrow ports
+  ([`ILogger`](./src/application/ports/ILogger.ts), [`IClock`](./src/application/ports/IClock.ts),
+  [`ISessionSource`](./src/application/ports/ISessionSource.ts)); the concrete wiring lives solely in the
+  [Composition Root](./src/infrastructure/config/container.ts).
+
 **All five aspects suggested by the brief are implemented:**
 
 | Aspect | Decorator | What it does |
