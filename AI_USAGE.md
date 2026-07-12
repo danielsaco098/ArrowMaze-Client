@@ -169,6 +169,30 @@ Conventional Commits with a `Co-Authored-By: Claude` trailer for traceability.
 - **Lessons:** PlantUML quirks were caught only by LOOKING at the rendered output (creole `--` strikethrough,
   the 4096-px render limit truncating a diagram) — visual artifacts need visual review.
 
+### Entry 017 — Android delivery: EAS builds, emulator, per-user progress
+
+- **Task:** Ship signed APKs (EAS Build with a local keystore), run and verify the game on an Android
+  emulator end-to-end against both PostgreSQL databases (local and Neon), and make level unlocks belong to
+  the signed-in ACCOUNT instead of the device (per-user storage keys + progress pull on login).
+- **Result:** Releases v1.0.0–v1.3.0 on GitHub; per-user `LocalProgressRepository` keys, the
+  `PullRemoteProgressUseCase` (wrapped by the auth aspect) and a home-screen leaderboard with a level picker.
+- **Lessons:** Android specifics (cleartext HTTP in release builds, the status-bar gesture zone swallowing
+  taps) only surfaced on a REAL device image — emulator verification became part of the definition of done.
+
+### Entry 018 — Winding arrows, rail-glide animation and hole mechanics
+
+- **Task:** Rework arrows into winding multi-cell snakes like the original game (per-cell direction +
+  `segmentIndex`), rebuild the escape animation as a constant-speed sliding window over an SVG rail, and
+  make holes real: they swallow arrows, end the star sweep, and act as escape hatches past blockers.
+- **Result:** A generator that stays solvable-by-construction while banning self-crossing lanes and dead
+  holes (validated by invariant tests + deterministic seed retries), adjacency-aware arrow colouring, a
+  flight queue for simultaneous escapes, ghost stars with a collect chime, and a volume slider.
+- **Lessons (AI mistakes caught):** the AI's first `JsonLevelBuilder` silently DROPPED the new
+  `segmentIndex` field — every level became unsolvable, and only the solver-oracle test exposed it; the
+  fold-back arrows ("an arrow pointing at itself") looked fine to every unit test and were caught by
+  playing the game and LOOKING at the board; an `Animated`-driven test flaked only on slow CI runners and
+  was fixed by mocking the animation clock in the test setup.
+
 ---
 
 ## 3. Critical Evaluation
@@ -184,6 +208,10 @@ Conventional Commits with a `Co-Authored-By: Claude` trailer for traceability.
   - **The first Pact contract over-specified the cell shape** (required `direction`/`arrowId` on walls and
     stars) — caught by the backend's provider verification, not by any unit test.
   - **Async RNTL v14 API** — widget tests failed until `render`/`fireEvent` were awaited.
+  - **A level builder that silently dropped `segmentIndex`** — types were happy, every level became
+    unsolvable; only the solver-oracle test caught it.
+  - **Arrows pointing at their own body** — passed all unit tests; caught by actually playing and looking
+    at the board, then locked down with a new generator invariant test.
   - **Jest type resolution** under the Expo tsconfig — fixed via an explicit `types` array.
   - An early README listed patterns that were never built — corrected against the code.
 - **Team reflection:** AI dramatically accelerated boilerplate (entities, use cases, repositories, tests,
