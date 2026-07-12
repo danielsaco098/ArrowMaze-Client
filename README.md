@@ -111,11 +111,11 @@ Eight GoF patterns are implemented across the three categories. Each row links t
 
 | Category | Pattern | Where / Why | Code |
 | --- | --- | --- | --- |
-| Creational | **Factory Method** | `JsonCellFactory` decides which concrete `Cell` (`ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`) to build from level data, so callers never instantiate concrete cells. | [JsonCellFactory.ts](./src/adapters/factories/JsonCellFactory.ts) |
+| Creational | **Factory Method** | `JsonCellFactory` decides which concrete `Cell` (`ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`/`CollectibleCell`) to build from level data, so callers never instantiate concrete cells. | [JsonCellFactory.ts](./src/adapters/factories/JsonCellFactory.ts) |
 | Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a `LevelData` definition (empty grid → place cells → board → metadata). | [JsonLevelBuilder.ts](./src/adapters/builders/JsonLevelBuilder.ts) |
 | Creational | **Singleton** | `AudioManager` exposes a single shared instance (`getInstance`) that owns the global mute flag and audio engine. | [AudioManager.ts](./src/infrastructure/audio/AudioManager.ts) |
 | Structural | **Composite** | `Board` holds the grid and treats every `Cell` subtype uniformly through the `Cell` base (e.g. `isPassable`). | [Board.ts](./src/domain/entities/Board.ts) |
-| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` / `AuthenticationUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
+| Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` / `AuthenticationUseCaseDecorator` / `CachingUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
 | Structural | **Adapter** | `LocalProgressRepository` adapts the `IKeyValueStorage` port to the `IProgressRepository` port; `AsyncStorageKeyValue` adapts React Native's AsyncStorage to `IKeyValueStorage`. | [LocalProgressRepository.ts](./src/adapters/repositories/LocalProgressRepository.ts) · [AsyncStorageKeyValue.ts](./src/infrastructure/storage/AsyncStorageKeyValue.ts) |
 | Behavioral | **Strategy** | `IScoringStrategy` / `StandardScoringStrategy` make the scoring algorithm interchangeable; `BundledLevelRepository` is a swappable `ILevelRepository` strategy. | [StandardScoringStrategy.ts](./src/domain/services/StandardScoringStrategy.ts) |
 | Behavioral | **Observer** | `InMemoryEventBus` (subject) notifies subscribers; `AudioObserver` reacts to `PlayerMoved`/`LevelCompleted`/`GameOver`. | [InMemoryEventBus.ts](./src/adapters/events/InMemoryEventBus.ts) · [AudioObserver.ts](./src/adapters/observers/AudioObserver.ts) |
@@ -132,7 +132,7 @@ create(spec: CellSpec, position: Position): Cell {
     case 'ARROW': {
       const arrowId = spec.arrowId ?? deriveArrowId(position);
       const color = spec.color ?? arrowColorFor(arrowId);
-      return new ArrowCell(position, Direction.fromName(spec.direction), arrowId, color);
+      return new ArrowCell(position, Direction.fromName(spec.direction), arrowId, color, spec.segmentIndex ?? 0);
     }
     case 'WALL':        return new WallCell(position);
     case 'EMPTY':       return new EmptyCell(position);
