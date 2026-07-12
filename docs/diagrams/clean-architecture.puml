@@ -13,9 +13,9 @@ rectangle "Layer 4 — Frameworks & Drivers\n(src/infrastructure)" #DDE6F0 {
       rectangle "Layer 1 — Domain\n(src/domain)" #F5E6B3 {
         card "Board · Cell (Arrow/Wall/Empty/Exit/Collectible)\nGameSession · Level · PlayerProgress\nPosition · Direction · Score · Lives\nPathTraversalService · StandardScoringStrategy\nPlayerMoved · LevelCompleted · GameOver" as DOMAIN
       }
-      card "Use cases: TapCell · LoadLevel · RecordLevelResult\nGetProgress · SyncProgress · GetLeaderboard\nGetOverallLeaderboard" as USECASES
-      card "Ports: ILevelRepository · IProgressRepository\nIEventPublisher · ICellFactory · ILevelBuilder\nIKeyValueStorage · IHttpClient · ISessionSource\nILogger · IClock · IMetricsRecorder · IAudioService" as PORTS
-      card "AOP decorators: Logging · Metrics\nExceptionHandling · Authentication" as ASPECTS
+      card "Use cases: TapCell · LoadLevel · RecordLevelResult\nGetProgress · SyncProgress · PullRemoteProgress\nGetLeaderboard · GetOverallLeaderboard" as USECASES
+      card "Ports: ILevelRepository · IProgressRepository\nIEventPublisher · ICellFactory · ILevelBuilder\nIKeyValueStorage · IHttpClient · ISessionSource\nIAuthApi · ILeaderboardApi · IProgressApi\nILogger · IClock · IMetricsRecorder · IAudioService" as PORTS
+      card "AOP decorators: Logging · Metrics\nExceptionHandling · Authentication · Caching" as ASPECTS
     }
     card "BundledLevelRepository · RestLevelRepository\nLocalProgressRepository · JsonCellFactory\nJsonLevelBuilder · ProgressMapper · SessionStore\nInMemoryEventBus · AudioObserver\nRestAuthApi · RestLeaderboardApi · RestProgressApi" as ADAPTERS
   }
