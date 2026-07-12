@@ -22,8 +22,8 @@ package "Layer 1 — Domain" #F5E6B3 {
   class Board {
     +rows / cols
     +cellAt(p) / replaceCell(c)
-    +headOfArrow(id) / clearArrow(id)
-    +arrowCount() / isCleared()
+    +pathOfArrow(id) / headOfArrow(id)
+    +clearArrow(id) / arrowCount() / isCleared()
   }
   class GameSession {
     +tap(position): TapResult
@@ -35,7 +35,7 @@ package "Layer 1 — Domain" #F5E6B3 {
     +board / timeLimitSeconds
   }
   class PathTraversalService {
-    +canEscape(board, position)
+    +canEscape(board, position, holes?)
   }
   interface IScoringStrategy
   class StandardScoringStrategy
@@ -63,6 +63,9 @@ package "Layer 2 — Application" #E8DDF0 {
   abstract class UseCaseDecorator
   class AuthenticationUseCaseDecorator
   class LoggingUseCaseDecorator
+  class MetricsUseCaseDecorator
+  class ExceptionHandlingUseCaseDecorator
+  class CachingUseCaseDecorator
 
   TapCellUseCase ..|> UseCase
   LoadLevelUseCase ..|> UseCase
@@ -72,6 +75,9 @@ package "Layer 2 — Application" #E8DDF0 {
   UseCaseDecorator ..|> UseCase
   UseCaseDecorator <|-- AuthenticationUseCaseDecorator
   UseCaseDecorator <|-- LoggingUseCaseDecorator
+  UseCaseDecorator <|-- MetricsUseCaseDecorator
+  UseCaseDecorator <|-- ExceptionHandlingUseCaseDecorator
+  UseCaseDecorator <|-- CachingUseCaseDecorator
   UseCaseDecorator o-- UseCase : wraps (Decorator)
 
   LoadLevelUseCase --> ILevelRepository
