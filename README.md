@@ -265,7 +265,7 @@ Each principle is applied and traceable to concrete code.
   wherever a [`Cell`](./src/domain/entities/Cell.ts) is expected;
   [`PathTraversalService`](./src/domain/services/PathTraversalService.ts) relies only on the polymorphic
   `isPassable()`, so it slides arrows over stars and around walls without knowing either type.
-- **I — Interface Segregation.** Concerns are split into narrow, single-method ports
+- **I — Interface Segregation.** Concerns are split into narrow, role-specific ports
   ([`IClock`](./src/application/ports/IClock.ts), [`ILogger`](./src/application/ports/ILogger.ts),
   [`IMetricsRecorder`](./src/application/ports/IMetricsRecorder.ts), [`IKeyValueStorage`](./src/application/ports/IKeyValueStorage.ts),
   [`ISessionSource`](./src/application/ports/ISessionSource.ts)) instead of one fat interface, so each class
