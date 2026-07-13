@@ -1,12 +1,16 @@
 import type { LevelData } from '../../application/ports/ILevelBuilder';
 import { generateLevel, LevelConfig } from './levelGenerator';
+import { buildCubeLevel16 } from './cubeLevels';
 
 /**
- * The 15 bundled levels. Each is produced by the deterministic, solvable-by-
- * construction {@link generateLevel} from a curated config: board size and arrow
- * length grow with difficulty (5 EASY, 5 MEDIUM, 5 HARD), so every level is
- * harder than the previous one. The seeds are fixed, so the levels never change.
- * `bundledLevels.test.ts` re-verifies that all 15 are fully solvable.
+ * The 16 bundled levels. Levels 1–15 are produced by the deterministic,
+ * solvable-by-construction {@link generateLevel} from a curated config: board
+ * size and arrow length grow with difficulty (5 EASY, 5 MEDIUM, 5 HARD), so every
+ * level is harder than the previous one. Level 16 — "The Cube" — is six of those
+ * faces glued onto one 30×30 diagonal board by {@link buildCubeLevel16}; it plays
+ * as a flat board to the domain and is projected onto a cube by the UI. The seeds
+ * are fixed, so the levels never change. `bundledLevels.test.ts` re-verifies that
+ * all 16 are fully solvable.
  */
 const LEVEL_CONFIGS: LevelConfig[] = [
   { id: 1, name: 'First Steps', difficulty: 'EASY', rows: 5, cols: 5, seed: 1011, maxLength: 4 },
@@ -26,4 +30,7 @@ const LEVEL_CONFIGS: LevelConfig[] = [
   { id: 15, name: 'The Great Escape', difficulty: 'HARD', rows: 11, cols: 11, seed: 3191, maxLength: 12, walls: 4, timeLimitSeconds: 110, collectibles: 3 },
 ];
 
-export const BUNDLED_LEVELS: ReadonlyArray<LevelData> = LEVEL_CONFIGS.map(generateLevel);
+export const BUNDLED_LEVELS: ReadonlyArray<LevelData> = [
+  ...LEVEL_CONFIGS.map(generateLevel),
+  buildCubeLevel16(),
+];
