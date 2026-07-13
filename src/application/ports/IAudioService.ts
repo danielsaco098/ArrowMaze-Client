@@ -9,6 +9,4 @@ export interface IAudioService {
   playEffect(effect: SoundEffect): void;
   startMusic(): void;
   stopMusic(): void;
-  /** Master volume in [0, 1]; optional — engines without volume support ignore it. */
-  setVolume?(volume: number): void;
 }

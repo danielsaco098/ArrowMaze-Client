@@ -24,7 +24,7 @@ describe('AudioManager', () => {
     expect(AudioManager.getInstance()).toBe(AudioManager.getInstance());
   });
 
-  it('should_delegate_playback_to_the_engine_when_not_muted', () => {
+  it('should_delegate_both_channels_to_the_engine_when_nothing_is_muted', () => {
     // Arrange
     const engine = new RecordingEngine();
     const manager = AudioManager.getInstance();
@@ -39,28 +39,44 @@ describe('AudioManager', () => {
     expect(engine.music).toBe('started');
   });
 
-  it('should_suppress_effects_and_music_when_muted', () => {
+  it('should_suppress_only_effects_when_effects_are_muted', () => {
     // Arrange
     const engine = new RecordingEngine();
     const manager = AudioManager.getInstance();
     manager.useEngine(engine);
-    manager.setMuted(true);
+    manager.toggleEffectsMuted();
 
     // Act
     manager.playEffect('ESCAPE');
     manager.startMusic();
 
-    // Assert
+    // Assert: effects silenced, music still plays
     expect(engine.effects).toEqual([]);
-    expect(engine.music).toBe('none');
+    expect(engine.music).toBe('started');
   });
 
-  it('should_allow_stopping_music_when_muted', () => {
+  it('should_suppress_only_music_when_music_is_muted', () => {
     // Arrange
     const engine = new RecordingEngine();
     const manager = AudioManager.getInstance();
     manager.useEngine(engine);
-    manager.setMuted(true);
+    manager.toggleMusicMuted();
+
+    // Act
+    manager.playEffect('ESCAPE');
+    manager.startMusic();
+
+    // Assert: music silenced, effects still play
+    expect(engine.effects).toEqual(['ESCAPE']);
+    expect(engine.music).toBe('none');
+  });
+
+  it('should_allow_stopping_music_even_when_music_is_muted', () => {
+    // Arrange
+    const engine = new RecordingEngine();
+    const manager = AudioManager.getInstance();
+    manager.useEngine(engine);
+    manager.toggleMusicMuted();
 
     // Act
     manager.stopMusic();
@@ -69,14 +85,20 @@ describe('AudioManager', () => {
     expect(engine.music).toBe('stopped');
   });
 
-  it('should_flip_and_report_the_mute_state_when_toggled', () => {
+  it('should_flip_and_report_each_channel_independently_when_toggled', () => {
     // Arrange
     const manager = AudioManager.getInstance();
 
-    // Act / Assert
-    expect(manager.isMuted()).toBe(false);
-    expect(manager.toggleMuted()).toBe(true);
-    expect(manager.isMuted()).toBe(true);
-    expect(manager.toggleMuted()).toBe(false);
+    // Act / Assert: effects and music mute are independent
+    expect(manager.isEffectsMuted()).toBe(false);
+    expect(manager.isMusicMuted()).toBe(false);
+
+    expect(manager.toggleEffectsMuted()).toBe(true);
+    expect(manager.isEffectsMuted()).toBe(true);
+    expect(manager.isMusicMuted()).toBe(false); // music unaffected
+
+    expect(manager.toggleMusicMuted()).toBe(true);
+    expect(manager.isMusicMuted()).toBe(true);
+    expect(manager.isEffectsMuted()).toBe(true); // effects unaffected
   });
 });

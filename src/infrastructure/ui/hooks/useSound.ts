@@ -2,31 +2,33 @@ import { useCallback, useState } from 'react';
 import { AudioManager } from '../../audio/AudioManager';
 
 /**
- * Exposes the global mute state and master volume (held by the
- * {@link AudioManager} singleton) to the UI, keeping local copies in sync so
- * the view re-renders.
+ * Exposes the two independent mute flags (sound effects and background music)
+ * held by the {@link AudioManager} singleton, keeping local copies in sync so
+ * the view re-renders when they change.
  */
 export function useSound() {
-  const [muted, setMuted] = useState<boolean>(() => AudioManager.getInstance().isMuted());
-  const [volume, setVolumeState] = useState<number>(() => AudioManager.getInstance().getVolume());
+  const [effectsMuted, setEffectsMuted] = useState<boolean>(() =>
+    AudioManager.getInstance().isEffectsMuted(),
+  );
+  const [musicMuted, setMusicMuted] = useState<boolean>(() =>
+    AudioManager.getInstance().isMusicMuted(),
+  );
 
-  const toggleMuted = useCallback(() => {
+  const toggleEffects = useCallback(() => {
+    setEffectsMuted(AudioManager.getInstance().toggleEffectsMuted());
+  }, []);
+
+  const toggleMusic = useCallback(() => {
     const audio = AudioManager.getInstance();
-    const nowMuted = audio.toggleMuted();
+    const nowMuted = audio.toggleMusicMuted();
     // The flag only gates FUTURE calls, so silence/resume the running music too.
     if (nowMuted) {
       audio.stopMusic();
     } else {
       audio.startMusic();
     }
-    setMuted(nowMuted);
+    setMusicMuted(nowMuted);
   }, []);
 
-  const setVolume = useCallback((value: number) => {
-    const audio = AudioManager.getInstance();
-    audio.setVolume(value);
-    setVolumeState(audio.getVolume());
-  }, []);
-
-  return { muted, toggleMuted, volume, setVolume };
+  return { effectsMuted, musicMuted, toggleEffects, toggleMusic };
 }

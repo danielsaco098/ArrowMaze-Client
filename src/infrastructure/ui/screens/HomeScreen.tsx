@@ -5,13 +5,12 @@ import { useTranslation } from '../i18n/I18nContext';
 import { useSound } from '../hooks/useSound';
 import { useSession } from '../session/SessionContext';
 import { PrimaryButton } from '../components/PrimaryButton';
-import { VolumeSlider } from '../components/VolumeSlider';
 import { theme } from '../theme';
 
 export function HomeScreen(): React.JSX.Element {
   const { navigate } = useNavigation();
   const { t, language, toggleLanguage } = useTranslation();
-  const { muted, toggleMuted, volume, setVolume } = useSound();
+  const { effectsMuted, musicMuted, toggleEffects, toggleMusic } = useSound();
   const { isAuthenticated, user } = useSession();
 
   return (
@@ -29,14 +28,6 @@ export function HomeScreen(): React.JSX.Element {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          testID="sound-toggle"
-          onPress={toggleMuted}
-          style={styles.chip}
-        >
-          <Text style={styles.chipText}>{t(muted ? 'settings.soundOff' : 'settings.soundOn')}</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
           testID="language-toggle"
           onPress={toggleLanguage}
           style={styles.chip}
@@ -44,8 +35,29 @@ export function HomeScreen(): React.JSX.Element {
           <Text style={styles.chipText}>{language.toUpperCase()}</Text>
         </Pressable>
       </View>
-      <View style={styles.volumeRow}>
-        <VolumeSlider volume={volume} onChange={setVolume} />
+      <View style={styles.settingsRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: !effectsMuted }}
+          testID="effects-toggle"
+          onPress={toggleEffects}
+          style={[styles.chip, effectsMuted && styles.chipMuted]}
+        >
+          <Text style={styles.chipText}>
+            {t(effectsMuted ? 'settings.effectsOff' : 'settings.effectsOn')}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: !musicMuted }}
+          testID="music-toggle"
+          onPress={toggleMusic}
+          style={[styles.chip, musicMuted && styles.chipMuted]}
+        >
+          <Text style={styles.chipText}>
+            {t(musicMuted ? 'settings.musicOff' : 'settings.musicOn')}
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.center}>
@@ -74,11 +86,11 @@ export function HomeScreen(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: theme.spacing(3) },
-  settingsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: theme.spacing(1) },
-  volumeRow: {
+  settingsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: theme.spacing(0.5),
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1),
   },
   chip: {
     paddingVertical: theme.spacing(0.75),
@@ -86,6 +98,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius,
     backgroundColor: theme.colors.surface,
   },
+  // A muted channel reads as visually "off": dimmed.
+  chipMuted: { opacity: 0.45 },
   chipText: { color: theme.colors.text, fontWeight: '700' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { color: theme.colors.text, fontSize: 44, fontWeight: '900', letterSpacing: 1 },

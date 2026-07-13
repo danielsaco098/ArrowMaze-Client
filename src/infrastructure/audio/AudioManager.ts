@@ -2,18 +2,20 @@ import type { IAudioService, SoundEffect } from '../../application/ports/IAudioS
 import { NoopAudioService } from './NoopAudioService';
 
 /**
- * Singleton that owns the single audio engine instance and the global mute flag.
+ * Singleton that owns the single audio engine instance and two independent mute
+ * flags: one for sound effects and one for the background music.
  *
  * It implements {@link IAudioService} by delegating to an inner engine, but
- * suppresses playback while muted — combining the Singleton pattern (one shared
- * audio controller, as the brief suggests for AudioManager) with mute handling.
+ * suppresses each channel while its flag is set — combining the Singleton
+ * pattern (one shared audio controller, as the brief suggests for AudioManager)
+ * with per-channel mute handling.
  */
 export class AudioManager implements IAudioService {
   private static instance: AudioManager | null = null;
 
   private engine: IAudioService = new NoopAudioService();
-  private muted = false;
-  private volume = 1;
+  private effectsMuted = false;
+  private musicMuted = false;
 
   private constructor() {}
 
@@ -27,47 +29,42 @@ export class AudioManager implements IAudioService {
   /** Swaps the underlying engine (e.g. plug an asset-backed service at startup). */
   useEngine(engine: IAudioService): void {
     this.engine = engine;
-    this.engine.setVolume?.(this.volume);
   }
 
-  getVolume(): number {
-    return this.volume;
+  isEffectsMuted(): boolean {
+    return this.effectsMuted;
   }
 
-  /** Sets the master volume (clamped to [0, 1]) on the engine. */
-  setVolume(volume: number): void {
-    this.volume = Math.min(1, Math.max(0, volume));
-    this.engine.setVolume?.(this.volume);
+  isMusicMuted(): boolean {
+    return this.musicMuted;
   }
 
-  isMuted(): boolean {
-    return this.muted;
+  /** Flips the sound-effects mute and returns the new state. */
+  toggleEffectsMuted(): boolean {
+    this.effectsMuted = !this.effectsMuted;
+    return this.effectsMuted;
   }
 
-  setMuted(muted: boolean): void {
-    this.muted = muted;
-  }
-
-  /** Flips mute and returns the new state. */
-  toggleMuted(): boolean {
-    this.muted = !this.muted;
-    return this.muted;
+  /** Flips the music mute and returns the new state. */
+  toggleMusicMuted(): boolean {
+    this.musicMuted = !this.musicMuted;
+    return this.musicMuted;
   }
 
   playEffect(effect: SoundEffect): void {
-    if (!this.muted) {
+    if (!this.effectsMuted) {
       this.engine.playEffect(effect);
     }
   }
 
   startMusic(): void {
-    if (!this.muted) {
+    if (!this.musicMuted) {
       this.engine.startMusic();
     }
   }
 
   stopMusic(): void {
-    // Stopping is always allowed, even while muted.
+    // Stopping is always allowed, even while music is not muted.
     this.engine.stopMusic();
   }
 

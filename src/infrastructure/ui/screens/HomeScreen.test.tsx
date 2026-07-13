@@ -55,6 +55,25 @@ describe('HomeScreen', () => {
     expect(getByTestId('route').props.children).toBe('leaderboard');
   });
 
+  it('should_toggle_effects_and_music_independently_when_their_chips_are_pressed', async () => {
+    const { getByTestId, getByText, queryByText } = await renderHome();
+
+    // Both channels start on
+    expect(getByText('🔊 Effects')).toBeTruthy();
+    expect(getByText('🎵 Music')).toBeTruthy();
+
+    // Muting effects does not touch music
+    await fireEvent.press(getByTestId('effects-toggle'));
+    expect(getByText('🔇 Effects')).toBeTruthy();
+    expect(getByText('🎵 Music')).toBeTruthy();
+    expect(queryByText('🔊 Effects')).toBeNull();
+
+    // Muting music does not touch effects
+    await fireEvent.press(getByTestId('music-toggle'));
+    expect(getByText('🔇 Music')).toBeTruthy();
+    expect(getByText('🔇 Effects')).toBeTruthy();
+  });
+
   it('should_switch_the_interface_language_when_the_toggle_is_pressed', async () => {
     const { getByText, getByTestId } = await renderHome();
     expect(getByText('Play')).toBeTruthy();
