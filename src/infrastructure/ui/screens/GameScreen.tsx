@@ -1,16 +1,18 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '../navigation/NavigationContext';
 import { useTranslation } from '../i18n/I18nContext';
 import { useContainer } from '../AppContainerContext';
 import { useGame } from '../hooks/useGame';
 import { BoardView } from '../components/BoardView';
+import { CubeBoardView } from '../cube/CubeBoardView';
+import { cubeLayoutForLevel } from '../cube/cubeRegistry';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { GameStatus } from '../../../domain/entities/GameStatus';
 import { Lives } from '../../../domain/value-objects/Lives';
 import { theme } from '../theme';
 
-const LAST_LEVEL_ID = 15;
+const LAST_LEVEL_ID = 16;
 
 export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element {
   const { navigate } = useNavigation();
@@ -34,6 +36,10 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
   } = useGame(levelId);
 
   const hearts = '♥'.repeat(lives) + '♡'.repeat(Math.max(0, Lives.DEFAULT - lives));
+
+  // The ONLY flat-vs-cube branch: the registry names the cube levels and their
+  // topology; both views speak the same render contract (Strategy).
+  const cubeLayout = useMemo(() => cubeLayoutForLevel(levelId), [levelId]);
 
   // On victory, push the score to the backend so it appears on the global
   // leaderboard. The use case is guarded by the authentication aspect, so no
@@ -90,13 +96,24 @@ export function GameScreen({ levelId }: { levelId: number }): React.JSX.Element 
 
       <View style={styles.boardArea}>
         {board ? (
-          <BoardView
-            board={board}
-            holes={holes}
-            escaping={escaping}
-            shakingArrowId={shakingArrowId}
-            onTapCell={onTapCell}
-          />
+          cubeLayout ? (
+            <CubeBoardView
+              board={board}
+              holes={holes}
+              escaping={escaping}
+              shakingArrowId={shakingArrowId}
+              onTapCell={onTapCell}
+              layout={cubeLayout}
+            />
+          ) : (
+            <BoardView
+              board={board}
+              holes={holes}
+              escaping={escaping}
+              shakingArrowId={shakingArrowId}
+              onTapCell={onTapCell}
+            />
+          )
         ) : (
           <Text style={styles.loading}>{t('common.loading')}</Text>
         )}
