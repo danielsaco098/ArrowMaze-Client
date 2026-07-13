@@ -1,7 +1,19 @@
 import { BUNDLED_LEVELS } from './bundledLevels';
 import { JsonLevelBuilder } from '../../adapters/builders/JsonLevelBuilder';
+import { CubeLayout } from '../../adapters/cube/CubeLayout';
+import { CUBE_FACE_SIZE } from './cubeLevels';
 
 const builder = new JsonLevelBuilder();
+
+/**
+ * The flat generated levels (1–15). The "no dead gaps" invariant below runs
+ * verbatim over these; for the cube (level 16) it is REPARAMETERISED rather than
+ * switched off: the padding between faces is exempt (it is the medium an arrow
+ * escapes INTO off a face edge — intentional dead space), but holes INSIDE a face
+ * are gameplay and must still obey the rule. See the cube-specific test below.
+ * The colour and path-continuity invariants run over all sixteen unchanged.
+ */
+const FLAT_LEVELS = BUNDLED_LEVELS.filter((l) => l.id <= 15);
 
 describe('arrow colours', () => {
   it.each(BUNDLED_LEVELS.map((l) => [l.id, l.name] as const))(
@@ -31,7 +43,7 @@ describe('arrow colours', () => {
 });
 
 describe('holes', () => {
-  it.each(BUNDLED_LEVELS.map((l) => [l.id, l.name] as const))(
+  it.each(FLAT_LEVELS.map((l) => [l.id, l.name] as const))(
     'should_place_every_gap_on_some_exit_lane_for_level_%i_%s',
     (id) => {
       // Arrange: a gap no exit lane crosses can never swallow an arrow — the
@@ -57,6 +69,36 @@ describe('holes', () => {
       }
     },
   );
+
+  it('should_place_every_in_face_gap_on_some_exit_lane_for_level_16_The_Cube', () => {
+    // Same invariant, reparameterised for the cube: PADDING is exempt — it is
+    // the escape medium off a face edge, dead by design — but a hole INSIDE a
+    // face is gameplay (it swallows arrows) and must sit on some exit lane like
+    // any other level's gap, or it is unreachable noise.
+    const cube = BUNDLED_LEVELS.find((l) => l.id === 16)!;
+    const board = builder.build(cube).board;
+    const layout = new CubeLayout(CUBE_FACE_SIZE);
+
+    const onLane = new Set<string>();
+    for (const arrowId of board.arrowIds()) {
+      const head = board.headCellOfArrow(arrowId);
+      let lane = head.position.translate(head.direction);
+      while (board.isWithinBounds(lane)) {
+        onLane.add(`${lane.row},${lane.col}`);
+        // The arrow falls into the first hole: the lane ends there.
+        if (board.cellAt(lane).kind === 'EMPTY') break;
+        lane = lane.translate(head.direction);
+      }
+    }
+
+    // Assert: only the EMPTY cells inside a face are held to the rule.
+    for (const cell of board.cells()) {
+      const { row, col } = cell.position;
+      if (cell.kind === 'EMPTY' && layout.isInsideFace(row, col)) {
+        expect(onLane.has(`${row},${col}`)).toBe(true);
+      }
+    }
+  });
 });
 
 describe('arrow path continuity', () => {
