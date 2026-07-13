@@ -14,6 +14,7 @@ import {
   screenToCube,
 } from './orbitGesture';
 import { CubeFace } from './CubeFace';
+import { CubeRailEscape } from './CubeRailEscape';
 import { theme } from '../theme';
 
 const MAX_CANVAS = 420;
@@ -28,8 +29,8 @@ interface Props {
   board: Board;
   /** Positions that started the level empty (permanent holes). */
   holes: ReadonlySet<string>;
-  /** Accepted for contract parity with BoardView; the 3D escape flight is the
-   * animation PR's job, so flights are currently ignored (never a crash). */
+  /** Arrows in flight: each escape renders a projected slide-off overlay that
+   * finishes on its own (same queue contract as the flat BoardView). */
   escaping?: ReadonlyArray<EscapingArrow>;
   /** Arrow that was just blocked: flashed in the danger colour. */
   shakingArrowId?: number | null;
@@ -55,8 +56,6 @@ export function CubeBoardView({
   onTapCell,
   layout,
 }: Props): React.JSX.Element {
-  void escaping; // the flight PR renders these as projected slide-off overlays
-
   const size = cubeBoardSize();
   const [r, setR] = useState<Mat3>(INITIAL_ROTATION);
 
@@ -171,6 +170,16 @@ export function CubeBoardView({
               toScreen={toScreen}
               holes={holes}
               shakingArrowId={shakingArrowId}
+            />
+          ))}
+          {escaping.map((flight) => (
+            <CubeRailEscape
+              key={`flight-${flight.arrowId}`}
+              flight={flight}
+              layout={layout}
+              r={r}
+              size={size}
+              toScreen={toScreen}
             />
           ))}
         </Svg>

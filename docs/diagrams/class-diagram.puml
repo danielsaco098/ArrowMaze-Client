@@ -101,6 +101,31 @@ package "Layer 3 — Interface Adapters" #CFE8DA {
   InMemoryEventBus ..|> IEventPublisher : Observer\n(subject)
   SessionStore ..|> ISessionSource
   JsonLevelBuilder --> JsonCellFactory : Factory Method
+
+  class CubeLayout {
+    +faceAt(r, c) / isPadding(r, c)
+    +toLocal / toBoard
+    +globalArrowId(f, id) / faceOfArrowId(id)
+  }
+  class CubeFaceComposer {
+    +compose(spec): LevelData
+  }
+
+  CubeFaceComposer --> CubeLayout : diagonal geometry\n+ arrow-id bands
+  CubeFaceComposer ..> JsonLevelBuilder : Builder\n(emits plain LevelData)
+
+  note as CubeLayoutNote
+    CubeLayout is a coordinate/identity
+    POLICY OBJECT — deliberately no GoF
+    label. It owns the two cube invariants:
+    faces pairwise disjoint in rows AND
+    columns (cross-face non-interference),
+    and per-face arrow-id bands (no global
+    id collisions). Both property-tested.
+    The domain is untouched: the cube is a
+    projection of one flat 30x30 Board.
+  end note
+  CubeLayout .. CubeLayoutNote
 }
 
 package "Layer 4 — Frameworks & Drivers" #DDE6F0 {
@@ -110,7 +135,19 @@ package "Layer 4 — Frameworks & Drivers" #DDE6F0 {
   class "useGame" as UseGame <<ViewModel>>
   class "container.ts" as Container <<Composition Root>>
 
+  class BoardView
+  class CubeBoardView
+  class "orbit / orbitGesture" as Orbit <<pure math>>
+  class CubeRailEscape
+  class "cubeRegistry" as CubeRegistry
+
   UseGame --> UseCase : executes
+
+  BoardView .. CubeBoardView : Strategy\n(one render contract,\nGameScreen picks via registry)
+  CubeRegistry ..> CubeLayout : level id → topology
+  CubeBoardView --> Orbit : trackball state,\nprojection + hitTest
+  CubeBoardView --> CubeLayout : tap → board Position
+  CubeBoardView *-- CubeRailEscape : flights\n(re-projected per frame)
 
   note as Layer3Note
     The Composition Root instantiates every

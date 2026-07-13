@@ -26,8 +26,10 @@ sliding off the board** in the direction it points:
 - If the path is **blocked by another arrow cell**, the move fails and the player **loses one life**.
 - The player starts with **3 lives**. Clear every arrow to **win**; run out of lives to **lose**.
 
-Boards also contain **walls**, **empty cells** and **exit cells**, with 15 hand-authored levels of
-increasing difficulty. Score is computed from **moves used** and **time elapsed**.
+Boards also contain **walls**, **empty cells** and **exit cells**, with 15 flat levels of increasing
+difficulty **plus level 16 — "The Cube"**: six faces played on the surface of a 3D solid the player
+orbits freely (see [Level 16 — The Cube](#-level-16--the-cube)). Score is computed from **moves used**
+and **time elapsed**.
 
 > **Tech stack:** React Native + Expo (SDK 56) · TypeScript (strict) · Jest + React Native Testing Library ·
 > in-app i18n (ES/EN) · pluggable audio engine with mute · AsyncStorage (local persistence).
@@ -58,8 +60,8 @@ outer layers know about inner layers, never the reverse. Frameworks, the databas
 | --- | --- | --- | --- |
 | **1 — Domain (Entities)** | `src/domain` | Pure business rules, zero external imports. Fully unit-testable in isolation. | `Board`, `Cell`, `ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`/`CollectibleCell`, `Level`, `GameSession` (aggregate root), `PlayerProgress`; VOs `Position`/`Direction`/`Score`/`Lives`; services `PathTraversalService`, `StandardScoringStrategy`; events `PlayerMoved`/`LevelCompleted`/`GameOver` |
 | **2 — Application (Use Cases)** | `src/application` | Orchestrates the domain; depends only on **ports**, never concretions. | Use cases `TapCellUseCase`, `LoadLevelUseCase`, `RecordLevelResultUseCase`, `GetProgressUseCase`, `SyncProgressUseCase`, `GetLeaderboardUseCase`, `GetOverallLeaderboardUseCase`; AOP decorators (Logging/Metrics/ExceptionHandling/**Authentication**); ports `ILevelRepository`, `IProgressRepository`, `IEventPublisher`, `ICellFactory`, `ILevelBuilder`, `IObserver`, `IKeyValueStorage`, `IHttpClient`, `ISessionSource`, `ILogger`, `IClock`, `IMetricsRecorder`, `IAudioService` |
-| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`/`RestLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `ProgressMapper`, `InMemoryEventBus`, `AudioObserver`, `SessionStore`, `RestAuthApi`/`RestLeaderboardApi`/`RestProgressApi` |
-| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), `AsyncStorageKeyValue`, `FetchHttpClient`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
+| **3 — Interface Adapters** | `src/adapters` | Translates between domain and frameworks. | `BundledLevelRepository`/`RestLevelRepository`, `LocalProgressRepository`, `JsonCellFactory`, `JsonLevelBuilder`, `CubeLayout`/`CubeFaceComposer` (level 16's cube-to-flat-board mapping), `ProgressMapper`, `InMemoryEventBus`, `AudioObserver`, `SessionStore`, `RestAuthApi`/`RestLeaderboardApi`/`RestProgressApi` |
+| **4 — Frameworks & Drivers** | `src/infrastructure` | Volatile, replaceable details. | React Native UI (screens, components, `useGame` view-model hook), the cube presentation (`orbit` projection math, trackball gesture, `CubeBoardView`/`CubeFace`/`CubeRailEscape`), `AsyncStorageKeyValue`, `FetchHttpClient`, `AudioManager` + audio engine, i18n, observability (`SystemClock`/`ConsoleLogger`/`ConsoleMetricsRecorder`), **Composition Root** (`config/container.ts`) |
 
 ### Class diagram (patterns + layer colors)
 
@@ -91,11 +93,13 @@ src/
 │   ├── repositories/
 │   ├── factories/
 │   ├── builders/
+│   ├── cube/          # CubeLayout (coordinate/id policy) + CubeFaceComposer (level 16)
 │   ├── mappers/
 │   ├── events/
 │   └── observers/     # AudioObserver
 └── infrastructure/    # Layer 4 — frameworks & drivers
     ├── ui/            # screens, components, hooks, navigation, i18n
+    │   └── cube/      # 3D presentation: orbit math, trackball gesture, CubeBoardView
     ├── storage/       # AsyncStorageKeyValue
     ├── audio/         # AudioManager (singleton) + engine
     ├── observability/ # SystemClock, ConsoleLogger, ConsoleMetricsRecorder
@@ -112,12 +116,12 @@ Eight GoF patterns are implemented across the three categories. Each row links t
 | Category | Pattern | Where / Why | Code |
 | --- | --- | --- | --- |
 | Creational | **Factory Method** | `JsonCellFactory` decides which concrete `Cell` (`ArrowCell`/`WallCell`/`EmptyCell`/`ExitCell`/`CollectibleCell`) to build from level data, so callers never instantiate concrete cells. | [JsonCellFactory.ts](./src/adapters/factories/JsonCellFactory.ts) |
-| Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a `LevelData` definition (empty grid → place cells → board → metadata). | [JsonLevelBuilder.ts](./src/adapters/builders/JsonLevelBuilder.ts) |
+| Creational | **Builder** | `JsonLevelBuilder` assembles a `Level` step by step from a `LevelData` definition (empty grid → place cells → board → metadata). `CubeFaceComposer` is a second Builder: it assembles level 16's single 30×30 `LevelData` from six N×N face definitions (offset each face onto its diagonal block, remap arrow ids into per-face bands). | [JsonLevelBuilder.ts](./src/adapters/builders/JsonLevelBuilder.ts) · [CubeFaceComposer.ts](./src/adapters/cube/CubeFaceComposer.ts) |
 | Creational | **Singleton** | `AudioManager` exposes a single shared instance (`getInstance`) that owns the global mute flag and audio engine. | [AudioManager.ts](./src/infrastructure/audio/AudioManager.ts) |
 | Structural | **Composite** | `Board` holds the grid and treats every `Cell` subtype uniformly through the `Cell` base (e.g. `isPassable`). | [Board.ts](./src/domain/entities/Board.ts) |
 | Structural | **Decorator** | `LoggingUseCaseDecorator` / `MetricsUseCaseDecorator` / `ExceptionHandlingUseCaseDecorator` / `AuthenticationUseCaseDecorator` / `CachingUseCaseDecorator` wrap a `UseCase` to add cross-cutting concerns (see [AOP](#-aspect-oriented-programming-aop)). | [decorators/](./src/application/decorators/UseCaseDecorator.ts) |
 | Structural | **Adapter** | `LocalProgressRepository` adapts the `IKeyValueStorage` port to the `IProgressRepository` port; `AsyncStorageKeyValue` adapts React Native's AsyncStorage to `IKeyValueStorage`. | [LocalProgressRepository.ts](./src/adapters/repositories/LocalProgressRepository.ts) · [AsyncStorageKeyValue.ts](./src/infrastructure/storage/AsyncStorageKeyValue.ts) |
-| Behavioral | **Strategy** | `IScoringStrategy` / `StandardScoringStrategy` make the scoring algorithm interchangeable; `BundledLevelRepository` is a swappable `ILevelRepository` strategy. | [StandardScoringStrategy.ts](./src/domain/services/StandardScoringStrategy.ts) |
+| Behavioral | **Strategy** | `IScoringStrategy` / `StandardScoringStrategy` make the scoring algorithm interchangeable; `BundledLevelRepository` is a swappable `ILevelRepository` strategy; `BoardView` / `CubeBoardView` are two board-renderer Strategies behind one render contract — `GameScreen` picks one via the cube registry, the only flat-vs-cube branch in the app. | [StandardScoringStrategy.ts](./src/domain/services/StandardScoringStrategy.ts) · [CubeBoardView.tsx](./src/infrastructure/ui/cube/CubeBoardView.tsx) |
 | Behavioral | **Observer** | `InMemoryEventBus` (subject) notifies subscribers; `AudioObserver` reacts to `PlayerMoved`/`LevelCompleted`/`GameOver`. | [InMemoryEventBus.ts](./src/adapters/events/InMemoryEventBus.ts) · [AudioObserver.ts](./src/adapters/observers/AudioObserver.ts) |
 
 ### Representative fragments
@@ -318,6 +322,56 @@ check or cache.
 
 ---
 
+## 🧊 Level 16 — The Cube
+
+The final level is played on the **surface of a cube**: six 5×5 faces, one shared pool of 3 lives,
+victory only when **all six faces** are cleared. The player orbits the solid freely with a drag
+(full 360° tumbling on every axis) and taps arrows on any visible face.
+
+**The key design decision: the cube is a PROJECTION, not a business rule.** The tap → slide →
+escape-or-lose-a-life rule is unchanged, so the domain is unchanged — `src/domain/` was not touched by
+a single line. The whole feature lives in the adapters and the UI:
+
+- **Diagonal layout** — the six faces are placed on the **diagonal of one flat 30×30 `Board`**
+  ([CubeLayout](./src/adapters/cube/CubeLayout.ts)): face *k* occupies rows and cols `[5k, 5k+5)`.
+  Because a sliding arrow's lane spans a whole row or column, any two faces sharing a row/column band
+  could block each other — on the diagonal every pair of faces is disjoint in **both** axes, so
+  cross-face non-interference is guaranteed by geometry, not by an `if`. A property test walks all six
+  faces and proves the disjointness; any "tighter net" layout fails it.
+- **Escape through padding** — everything off the diagonal is left EMPTY. The domain already treats a
+  cell that starts empty as a **hole that swallows escaping arrows**, so an arrow reaching its face edge
+  enters the padding and escapes — zero new domain code.
+- **Per-face arrow-id bands** — `Board` keys arrows by a global id and every generated face numbers its
+  arrows from 1, so [CubeLayout.globalArrowId](./src/adapters/cube/CubeLayout.ts) offsets each face into
+  its own id band (`f·1000 + id`, throwing on out-of-range input). Without it a tap would clear arrows on
+  several faces and one cleared face would win the game; an injectivity property test guards it.
+- **Composition** — [CubeFaceComposer](./src/adapters/cube/CubeFaceComposer.ts) (Builder) glues six
+  generator-produced faces (each with walls and stars, solvable by construction) into one ordinary
+  `LevelData` that the existing `JsonLevelBuilder` → `BundledLevelRepository` pipeline consumes unchanged
+  ([cubeLevels.ts](./src/infrastructure/data/cubeLevels.ts)). Level 16 is HARD and deliberately
+  **untimed**: a countdown racing arrows you must orbit to see would be punitive.
+- **Isometric SVG rendering, no 3D engine** — [orbit.ts](./src/infrastructure/ui/cube/orbit.ts) is a pure
+  math module (orthographic projection, backface culling, painter's ordering, cell polygons, hit-testing
+  with an edge-on tap threshold so sliver faces are untappable rather than mis-tappable). Drawing and
+  tapping share the same projected quads, so they can never disagree.
+- **Trackball orbit** — the camera state is the **rotation matrix itself**; each drag increment is
+  premultiplied in camera space and renormalized ([orbitGesture.ts](./src/infrastructure/ui/cube/orbitGesture.ts)),
+  giving pole-free 360° tumbling (a yaw/pitch Euler state reverses horizontal drags past 90° of pitch —
+  tested explicitly). Tap-vs-drag uses a peak-excursion + duration rule so orbiting never costs a life.
+- **Escape flights in cube space** — [cubeFlight.ts](./src/infrastructure/ui/cube/cubeFlight.ts) +
+  [CubeRailEscape.tsx](./src/infrastructure/ui/cube/CubeRailEscape.tsx): the flight's state is a
+  face-local rail plus a progress scalar, re-projected every frame, so orbiting mid-flight keeps the
+  flight glued to the cube. An in-face hole swallows the arrow (the body shrinks into the pit); a
+  face-edge escape flies off along the projected outward direction and fades; ghost stars pop as the
+  flight passes.
+
+The flat levels 1–15 run through the **same code path** — a flat board is simply the degenerate case,
+and [GameScreen](./src/infrastructure/ui/screens/GameScreen.tsx) picks `BoardView` or `CubeBoardView`
+(two Strategies behind one render contract) from the
+[cube registry](./src/infrastructure/ui/cube/cubeRegistry.ts) — the only flat-vs-cube branch in the app.
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -366,7 +420,8 @@ npm run typecheck      # tsc --noEmit
 - **Unit tests** cover every entity, use case, and service in isolation, following **AAA**
   (Arrange–Act–Assert) and the naming convention
   `should_<expected>_when_<condition>` (e.g. `should_return_victory_state_when_the_board_is_cleared`).
-  A solver test even proves all 15 bundled levels are solvable.
+  A solver test even proves all 16 bundled levels are solvable — the cube included, loaded through the
+  same repository the game uses.
 - **Widget tests** verify component rendering, board interaction and navigation flows
   (home → level select → game → victory, and defeat → retry) through the real `Router`.
 - **Contract tests (Pact)** — [`pact/consumer.pact.test.ts`](./pact/consumer.pact.test.ts) runs the real

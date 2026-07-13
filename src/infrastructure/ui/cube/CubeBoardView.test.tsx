@@ -276,27 +276,90 @@ describe('CubeBoardView', () => {
     expect(queryByTestId('cube-board-loading')).toBeTruthy();
   });
 
-  it('should_accept_an_escaping_flight_without_crashing', async () => {
-    // The flight PR renders these in 3D; until then the prop is accepted and
-    // ignored gracefully (contract parity with BoardView).
-    const { getByTestId } = await render(
-      <CubeBoardView
-        board={cubeTestBoard()}
-        holes={new Set()}
-        escaping={[
-          {
-            arrowId: 1,
-            color: '#FFD166',
-            direction: 'RIGHT',
-            cells: [{ row: 0, col: 0, direction: 'RIGHT' }],
-            stars: [],
-            hole: null,
-          },
-        ]}
-        onTapCell={() => {}}
-        layout={layout}
-      />,
-    );
-    expect(getByTestId('cube-board')).toBeTruthy();
+  describe('escape flights', () => {
+    /** A fly-off flight on FRONT: local (0,0) exiting RIGHT into the padding. */
+    const flight = {
+      arrowId: 1,
+      color: '#FFD166',
+      direction: 'RIGHT' as const,
+      cells: [{ row: 0, col: 0, direction: 'RIGHT' as const }],
+      stars: [],
+      hole: { row: 0, col: 5 }, // first padding cell past FRONT's edge
+    };
+
+    it('should_render_an_overlay_for_a_flight_event', async () => {
+      const { getByTestId } = await render(
+        <CubeBoardView
+          board={cubeTestBoard()}
+          holes={new Set()}
+          escaping={[flight]}
+          onTapCell={() => {}}
+          layout={layout}
+        />,
+      );
+      expect(getByTestId('cube-flight-1')).toBeTruthy();
+    });
+
+    it('should_keep_the_flight_glued_through_an_orientation_change', async () => {
+      // Orbiting mid-flight: the overlay re-projects from the new rotation —
+      // still there, still on its face, no crash.
+      const { getByTestId } = await render(
+        <CubeBoardView
+          board={cubeTestBoard()}
+          holes={new Set()}
+          escaping={[flight]}
+          onTapCell={() => {}}
+          layout={layout}
+        />,
+      );
+      const view = getByTestId('cube-board');
+      const size = cubeBoardSize();
+      await fireEvent(view, 'responderGrant', touch(size / 2, size / 2));
+      await fireEvent(view, 'responderMove', touch(size / 2 + 40, size / 2 + 25));
+      await fireEvent(view, 'responderRelease', touch(size / 2 + 40, size / 2 + 25));
+
+      expect(getByTestId('cube-flight-1')).toBeTruthy();
+    });
+
+    it('should_cull_the_flight_when_its_face_is_orbited_away', async () => {
+      // A half-turn tumble hides FRONT mid-flight: the overlay is simply
+      // culled (it draws nothing), it does not crash or fly detached.
+      const { getByTestId, queryByTestId } = await render(
+        <CubeBoardView
+          board={cubeTestBoard()}
+          holes={new Set()}
+          escaping={[flight]}
+          onTapCell={() => {}}
+          layout={layout}
+        />,
+      );
+      const view = getByTestId('cube-board');
+      const size = cubeBoardSize();
+      const total = Math.PI / ORBIT_RADIANS_PER_PX;
+      await fireEvent(view, 'responderGrant', touch(size / 2, size / 4));
+      await fireEvent(view, 'responderMove', touch(size / 2, size / 4 + total / 2));
+      await fireEvent(view, 'responderMove', touch(size / 2, size / 4 + total));
+      await fireEvent(view, 'responderRelease', touch(size / 2, size / 4 + total));
+
+      expect(queryByTestId('cube-face-0')).toBeNull(); // FRONT is gone…
+      expect(queryByTestId('cube-flight-1')).toBeNull(); // …and so is its flight
+    });
+
+    it('should_cancel_the_animation_frame_on_unmount', async () => {
+      // No leaked timers: unmounting mid-flight cancels the rAF loop.
+      const cancelSpy = jest.spyOn(globalThis, 'cancelAnimationFrame');
+      const { unmount } = await render(
+        <CubeBoardView
+          board={cubeTestBoard()}
+          holes={new Set()}
+          escaping={[flight]}
+          onTapCell={() => {}}
+          layout={layout}
+        />,
+      );
+      await unmount();
+      expect(cancelSpy).toHaveBeenCalled();
+      cancelSpy.mockRestore();
+    });
   });
 });
