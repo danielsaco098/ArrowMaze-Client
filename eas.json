@@ -17,6 +17,12 @@
         "EXPO_PUBLIC_API_URL": "http://10.0.2.2:3000"
       }
     },
+    "cloud": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://arrowmaze-backend-production-b1b0.up.railway.app"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
