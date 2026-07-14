@@ -193,6 +193,89 @@ Conventional Commits with a `Co-Authored-By: Claude` trailer for traceability.
   playing the game and LOOKING at the board; an `Animated`-driven test flaked only on slow CI runners and
   was fixed by mocking the animation clock in the test setup.
 
+### Entry 019 — Level 16: the 3D cube (design-first, PR by PR, domain untouched)
+
+- **Date:** 2026-07-13
+- **Task:** Add level 16 played on the surface of a cube — six faces, free 360° orbit, tap arrows on any
+  visible face, escape flights in 3D — **without modifying a single line of `src/domain/`**. The team
+  ran this as a disciplined sequence: design document first (no code), then five reviewed PRs, each gated
+  by a human play-test.
+- **Actual prompts (abridged, key lines verbatim):**
+  1. *Design brief:* "Read this repository before writing anything. […] GOAL: add a level 16 played on a
+     CUBE. […] **HARD CONSTRAINT — this is not negotiable: DO NOT MODIFY ANY FILE UNDER `src/domain/`.
+     Not one line.** […] A cube is NOT a business rule. It is a PROJECTION. […] Lay the six faces out ON
+     THE DIAGONAL of a single flat Board of size 6N x 6N. […] If two faces shared a row band or a column
+     band, an arrow on one face could be blocked by an arrow on another — which this game never does.
+     […] Deliverable for THIS message: NO CODE."
+  2. *Blocking correction after the design:* "**BLOCKING — you missed the risk I was fishing for.
+     ARROW IDS COLLIDE ACROSS FACES.** `generateLevel` numbers arrows from 1 on EVERY face, and `Board`
+     treats `arrowId` as GLOBAL. […] `isCleared()` declares VICTORY once one face is clear. Nothing
+     throws. The game is just wrong. […] it is not a spatial problem — it is an identity problem."
+  3. *Identity invariant placement:* "Id uniqueness is the SAME KIND of invariant as geometric
+     disjointness […] Identity must live in the same place, with the same treatment. […] Do not clamp,
+     do not modulo — **throw**." (Plus the caveat: never write `if (!layout.faceAt(r, c))` — FRONT is
+     face 0 and 0 is falsy.)
+  4. *Integration overrule:* "I am overruling the other decision. Wire level 16 into the repository, in
+     THIS PR. […] the integration seam — the exact thing the go/no-go gate existed to exercise — is
+     still untested. **A green test suite is not that.** […] Then tell me it is ready and I will play it
+     in the flat 30x30 BoardView myself. That human pass IS the gate."
+  5. *Test-scope correction:* "You loosened more than you had to. […] The no-dead-gaps convention must
+     be **REPARAMETERISED** for the cube, not switched off. […] padding is the escape medium, in-face
+     holes are gameplay." (Also demanded a test that the cube is a PUZZLE: at least one arrow blocked at
+     start.)
+  6. *PR-3:* "`orbit.ts`, the pure projection module. Zero React […] Per-face 3D bases […] this is the
+     R3 risk you named, so pin each face's basis with a test against a known orientation. […] Cull faces
+     seen nearly edge-on (|normal · view| < 0.15) so sliver cells are untappable rather than
+     mis-tappable."
+  7. *PR-4:* "CubeBoardView + CubeFace, wired into GameScreen. […] TAP vs DRAG is a hard requirement
+     […] Getting this wrong costs the player a life every time they rotate; test it. […] PADDING IS
+     NEVER DRAWN."
+  8. *Trackball replacement after the human pass:* "The fix is NOT raising the ±85° pitch clamp. The
+     clamp was a band-aid over the Euler representation itself […] Replace the yaw/pitch state with
+     **TRACKBALL ROTATION** — accumulate the rotation matrix itself […] RENORMALIZE R after each
+     accumulation […] a horizontal drag still rotates in the same screen direction (the camera-space
+     property — this is the test that would FAIL under Euler)."
+  9. *PR-5:* "the escape flight on the orbiting cube. […] **RE-PROJECT THE FLIGHT EVERY FRAME** from the
+     current rotation state. The flight's state lives in cube space (face, lane, progress); screen
+     coordinates are derived. […] A hole INSIDE the face still swallows […] `layout.isPadding` is the
+     discriminator."
+- **Result:** `src/domain/` untouched (verified by `git status` after every PR). New: `CubeLayout` +
+  `CubeFaceComposer` (adapters), `cubeLevels` (data), `orbit`/`orbitGesture`/`cubeFlight` pure math +
+  `CubeBoardView`/`CubeFace`/`CubeRailEscape`/`cubeRegistry` (UI). 381 tests green across 53 suites,
+  including property tests for the two cube invariants (pairwise face disjointness; arrow-id
+  injectivity), trackball drift (1000 random drags, RᵀR ≈ I), tap-vs-drag, and hit-test round-trips at
+  tumbled attitudes.
+- **Two bugs only the HUMAN PASS caught (378 tests were green through both):**
+  - **Detached glyphs on sheared faces** — the arrowhead's base edge used a screen-space perpendicular
+    and stars were fixed screen shapes translated to a projected centroid. Invisible at identity;
+    measured **16.4° of head misalignment at a ~30° tumble**. Fixed by one rule: every point of every
+    glyph is defined in cube space and projected point by point (one continuous Path per arrow, head and
+    stars built face-locally); a regression test now asserts the head's base edge follows the face's
+    PROJECTED perpendicular.
+  - **White screen on level 15 → "Next" → 16** — GameScreen stays mounted across the levelId change, so
+    for one async beat its refs still held the 11×11 board while the registry already supplied the 30×30
+    cube layout; walking the layout over the small board threw `OutOfBoundsError` mid-render. Fixed
+    structurally (a size mismatch IS the loading state, no try/catch), with a transition regression test
+    on the exact user path.
+  - **Why 378 green tests missed both:** every render test mounted an already-consistent world and
+    asserted topology (which faces exist, which cell a tap resolves to), not visual alignment or the
+    mid-transition window. The user arrived mid-transition and looked at the pixels. The lesson is the
+    same one as Entry 018's fold-back arrows: some bug classes are only visible to a human holding the
+    running game — budget a device pass per feature, and when it finds something, convert what the eye
+    saw into an assertion (the shear test, the wrong-size-board test) so it stays caught.
+- **Team modifications / decisions:** every prompt above IS a team decision the AI then implemented; the
+  team also accepted two AI-flagged deviations with justification (raw responder protocol instead of
+  PanResponder, so the tap-vs-drag component tests drive the real code path; `hitTest` returning the
+  CubeLayout face index so it feeds `layout.toBoard` directly).
+- **Lessons (AI mistakes caught by the team):** the AI's risk analysis (a) missed the **arrow-id
+  collision** entirely — the geometry was right, the identity was not, and nothing would have thrown
+  (prompt 2); (b) hand-wrote the id remap as a magic `faceIndex * 1000 + localId` inside the composer
+  until told to move the invariant next to its geometric twin (prompt 3); (c) guarded a **non-problem**
+  (the `allCompleted` count) and in doing so left the real integration seam untested (prompt 4); (d)
+  over-scoped test exclusions, silently shipping the cube with **zero walls and zero stars** — restoring
+  the conventions the team demanded exposed the missing content (prompt 5); (e) shipped a pitch clamp
+  that a human play-test revealed as an Euler band-aid rather than a fix (prompt 8).
+
 ---
 
 ## 3. Critical Evaluation
@@ -212,6 +295,9 @@ Conventional Commits with a `Co-Authored-By: Claude` trailer for traceability.
     unsolvable; only the solver-oracle test caught it.
   - **Arrows pointing at their own body** — passed all unit tests; caught by actually playing and looking
     at the board, then locked down with a new generator invariant test.
+  - **The cube design's risk analysis missed the cross-face arrow-id collision** — a silent false-victory
+    bug (one cleared face would win the game, nothing thrown); caught in design review before any code,
+    then locked down with an id-injectivity property test and cross-face behaviour tests.
   - **Jest type resolution** under the Expo tsconfig — fixed via an explicit `types` array.
   - An early README listed patterns that were never built — corrected against the code.
 - **Team reflection:** AI dramatically accelerated boilerplate (entities, use cases, repositories, tests,
